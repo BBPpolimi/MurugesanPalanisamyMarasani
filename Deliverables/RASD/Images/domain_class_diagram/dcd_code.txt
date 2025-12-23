@@ -1,0 +1,240 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' =========================
+' USERS
+' =========================
+abstract class User {
+  +userId: String
+  +name: String
+  +email: String
+  +credentialRef: String
+}
+
+class RegisteredUser {
+  +isBlocked: Boolean
+  +automaticModeEnabled: Boolean
+  +register()
+  +login()
+  +startTrip()
+  +stopTrip()
+  +createManualReport()
+  +editOwnReport()
+}
+
+class GuestUser {
+  +searchPaths()
+}
+
+class Administrator {
+  +blockUser()
+  +hideOrRemoveReport()
+}
+
+User <|-- RegisteredUser
+User <|-- GuestUser
+User <|-- Administrator
+
+' =========================
+' TRIPS (personal log)
+' =========================
+class Trip {
+  +tripId: String
+  +startTime: DateTime
+  +endTime: DateTime
+  +distance: Double
+  +duration: Long
+  +avgSpeed: Double
+  +maxSpeed: Double
+  +elevationGain: Double
+  +isArchived: Boolean
+}
+
+RegisteredUser "1" -- "0..*" Trip : owns >
+
+class GpsPoint {
+  +lat: Double
+  +lon: Double
+  +timestamp: DateTime
+  +elevation: Double
+  +accuracyMeters: Double
+}
+
+Trip "1" o-- "2..*" GpsPoint : polyline >
+
+class SensorSample {
+  +sampleId: String
+  +timestamp: DateTime
+  +accelX: Double
+  +accelY: Double
+  +accelZ: Double
+  +gyroX: Double
+  +gyroY: Double
+  +gyroZ: Double
+}
+
+Trip "1" o-- "0..*" SensorSample : sensorSamples >
+
+class WeatherSnapshot {
+  +timestamp: DateTime
+  +temperatureC: Double
+  +windSpeed: Double
+  +conditions: String
+  +source: String
+}
+
+Trip "0..1" o-- "1" WeatherSnapshot : enrichedWith >
+
+class PathSegmentOccurrence {
+  +occurrenceId: String
+  +orderIndex: int
+  +confidence: Double
+  +enteredAt: DateTime
+  +exitedAt: DateTime
+}
+
+Trip "1" o-- "0..*" PathSegmentOccurrence : contributesSegments >
+
+' =========================
+' PATH NETWORK + COMMUNITY DATA
+' =========================
+class BikePath {
+  +pathId: String
+  +name: String
+}
+
+class PathSegment {
+  +segmentId: String
+  +geometry: String
+  +baseStreetId: String
+}
+
+BikePath "0..*" -- "1..*" PathSegment : contains (ordered) >
+PathSegmentOccurrence "*" --> "1" PathSegment : segment >
+
+enum SegmentStatus {
+  optimal
+  medium
+  sufficient
+  requiresMaintenance
+}
+
+class ConsolidatedStatus {
+  +currentStatus: SegmentStatus
+  +lastUpdated: DateTime
+  +confidenceScore: Double
+}
+
+PathSegment "1" o-- "1" ConsolidatedStatus : consolidatedStatus >
+
+enum ReportSource {
+  manual
+  automaticConfirmed
+}
+
+class PathSegmentReport {
+  +reportId: String
+  +timestamp: DateTime
+  +status: SegmentStatus
+  +isPublishable: Boolean
+  +source: ReportSource
+}
+
+RegisteredUser "1" -- "0..*" PathSegmentReport : reportedBy >
+PathSegment "1" o-- "0..*" PathSegmentReport : reports >
+
+class Obstacle {
+  +obstacleId: String
+  +type: ObstacleType
+  +severity: int
+  +positionOnSegment: Double
+  +description: String
+}
+
+enum ObstacleType {
+  pothole
+  debris
+  bump
+  dangerousCrossing
+  roughPatch
+  other
+}
+
+PathSegmentReport "1" o-- "0..*" Obstacle : obstacles >
+
+' =========================
+' AUTOMATIC DETECTION (candidates -> confirmed reports)
+' =========================
+enum CandidateState {
+  detectedAutomatically
+  pendingUserConfirmation
+  confirmed
+  rejected
+}
+
+class CandidateIssue {
+  +candidateId: String
+  +detectedAt: DateTime
+  +typeGuess: ObstacleType
+  +severityGuess: int
+  +confidence: Double
+  +state: CandidateState
+  +confirm()
+  +reject()
+  +editDetails()
+}
+
+Trip "1" o-- "0..*" CandidateIssue : detectedDuring >
+RegisteredUser "1" -- "0..*" CandidateIssue : reviewedBy >
+CandidateIssue "*" --> "0..1" PathSegment : locatedOn >
+CandidateIssue "0..*" ..> PathSegmentReport : "confirm -> creates"
+
+' =========================
+' ROUTE SEARCH + SCORING
+' =========================
+class RouteRequest {
+  +requestId: String
+  +origin: String
+  +destination: String
+  +requestedAt: DateTime
+}
+
+User "1" -- "0..*" RouteRequest : makes >
+
+class RoutingPreference {
+  +preferSafest: Boolean
+  +preferShortest: Boolean
+  +maxExtraDistancePct: int
+  +qualityWeight: Double
+  +effectivenessWeight: Double
+}
+
+RegisteredUser "0..1" o-- "1" RoutingPreference : sets >
+
+class RouteCandidate {
+  +routeId: String
+  +distance: Double
+  +estimatedDuration: Long
+  +turnCount: int
+  +elevationGain: Double
+}
+
+RouteRequest "1" o-- "1..*" RouteCandidate : results >
+
+class RouteSegment {
+  +orderIndex: int
+}
+
+RouteCandidate "1" o-- "1..*" RouteSegment : consistsOf >
+RouteSegment "1" --> "1" PathSegment : segment >
+
+class PathScore {
+  +totalScore: Double
+  +qualityScore: Double
+  +effectivenessScore: Double
+  +explanation: String
+}
+
+RouteCandidate "1" o-- "1" PathScore : scoredBy >
+
+@enduml

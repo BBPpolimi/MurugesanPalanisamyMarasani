@@ -1,0 +1,775 @@
+\subsection{External Interface Requirements}
+
+\subsubsection{User Interfaces}
+\begin{enumerate}
+    \item \textbf{Home/Dashboard (registered user):}
+    \begin{itemize}
+        \item Shows quick buttons: \textit{Start Trip}, \textit{My Trips}, \textit{Contribute Paths}, \textit{Find Path}. Shows recent trips and short stats.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{Images/figma_diagrams/Home_Dashboard.png}
+        \caption{\label{fig:figma_home_dashboard}Dashboard}
+    \end{figure}
+    \vspace{1cm}
+    \end{itemize}
+    \item \textbf{Trip Recording Screen:} 
+    \begin{itemize}
+        \item Displays elapsed time, distance and current speed.
+        \item Shows the user’s position on a map.
+        \item Contains buttons: Start, Pause/Resume, Stop.
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{Images/figma_diagrams/Trip Recording.png}
+        \caption{\label{fig:figma_trip_record}Trip Recording Screen}
+    \end{figure}
+    \end{itemize}
+    \item \textbf{Trip Details Screen:}
+    \begin{itemize}
+        \item Map with route polyline.
+        \item Trip statistics.
+        \item Weather summary.
+        \item Optional toggle “use this trip to update path information”.
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{Images/figma_diagrams/Trip Details (Post-Trip).png}
+        \caption{\label{fig:figma_trip_details}Trip Details Screen}
+    \end{figure}
+    \end{itemize}
+    \item \textbf{Contribute Paths (Manual) Screen}
+    \begin{itemize}
+        \item Map where the user can draw/select a path or list of streets.
+        \item Form for assigning status to each segment and adding obstacles.
+        \item Checkbox or switch \textit{Make this contribution publishable}.
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{Images/figma_diagrams/Contribute Paths (Manual).png}
+        \caption{\label{fig:figma_contribute_path_manual}Contribute Path (Manual) Screen}
+    \end{figure}
+    \end{itemize}
+    \item \textbf{Automatic Detection Review Screen}
+    \begin{itemize}
+        \item List or map of suspected obstacles detected during recent trips.
+        \item For each candidate: buttons \textit{Confirm, Reject, Edit details.}
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.5\textwidth]{Images/figma_diagrams/Automatic Detection Review.png}
+        \caption{\label{fig:figma_automatic_detection_review}Automatic Detection Review}
+    \end{figure}
+
+    \end{itemize}
+    \item \textbf{Path Search Screen (Public)}
+    \begin{itemize}
+        \item Input fields for origin and destination (address, point on map).
+        \item Optional filters (e.g., \textit{prefer safest, shortest path, avoid unlit segments}).
+        \item List of candidate paths with score and summary (distance, expected quality).
+        \item Map visualization of selected path.
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.45\textwidth]{Images/figma_diagrams/Path Search.png}
+        \caption{\label{fig:figma_path_search}Path Search Screen}
+    \end{figure}
+    \end{itemize}
+
+\end{enumerate}
+
+\subsubsection{Hardware Interfaces}
+\begin{enumerate}
+    \item Device with:
+    \begin{itemize}
+        \item GPS Receiver
+        \item Accelerometer and gyroscope (for automatic mode).
+        \item Network connectivity.
+    \end{itemize}
+    \item BBP accesses these sensors through the OS APIs (e.g.android/iOS location \& sensor APIs).
+\end{enumerate}
+
+\subsubsection{Software Interfaces}
+\begin{enumerate}
+    \item \textbf{Map/Routing API:}  For map tiles, geocoding (address <==> coordinates)and route computation.
+    \item \textbf{Weather API:} BBP calls the external weather service with time and location to enrich trips with weather snapshots.
+    \item \textbf{Persistent Storage (DB):} For users, trips, segments, reports, merged statuses.
+\end{enumerate}
+\subsubsection{ Communication Interfaces}
+\begin{enumerate}
+    \item All communication between client and server uses HTTPS.
+    \item Calls to external APIs (maps, weather) also use secure HTTP endpoints.
+    \item Where live updates are needed (e.g., showing trip progress on web), WebSockets or equivalent may be used.
+\end{enumerate}
+
+\subsection{Functional Requirements}
+\paragraph{Trip Recording \& Statistics}
+\begin{description}
+    \item[\textbf{R1 - User registration}] 
+    The system shall allow a user to create an account using an email (or federated login) and password.
+
+    \item[\textbf{R2 - User login}] 
+    The system shall allow a registered user to authenticate and access their personal data.
+
+    \item[\textbf{R3 - Start trip recording}] 
+    The system shall allow a logged-in user to start recording a new trip, initializing GPS logging and timing.
+
+    \item[\textbf{R4 - Stop trip recording}] 
+    The system shall allow the user to stop an ongoing trip and save it as a completed trip.
+
+    \item[\textbf{R5 - Trip statistics}] 
+    After a trip is saved, the system shall compute and store at least distance, duration, and average speed.
+
+    \item[\textbf{R6 - Trip history}] 
+    The system shall allow a logged-in user to view the list of all recorded trips and open detailed views.
+
+    \item[\textbf{R7 - Trip weather enrichment}] 
+    For each trip, if the weather service is reachable, the system shall fetch and attach weather information based on time and location.
+\end{description}
+
+\paragraph{Manual Path Information}
+\begin{description}
+    \item[\textbf{R8 - Manual path creation}] 
+    The system shall allow a logged-in user to select or draw a bike path using the map or by specifying street names.
+
+    \item[\textbf{R9 - Segment status assignment}] 
+    The system shall allow the user to set a status (optimal, medium, sufficient, requires maintenance, etc.) for each segment of a path.
+
+    \item[\textbf{R10 - Obstacle creation}] 
+    The system shall allow the user to create obstacles associated with a segment, specifying the obstacle type and a description.
+
+    \item[\textbf{R11 - Publishability}] 
+    The system shall allow the user to mark manual contributions as publishable or private.
+
+    \item[\textbf{R12 - Edit manual contributions}] 
+    The system shall allow users to edit or delete their previously submitted path reports.
+\end{description}
+
+\paragraph{Automatic path information}
+\begin{description}
+    \item[\textbf{R13 - Enable/disable automatic mode}] 
+    The system shall allow a user to enable or disable automatic collection of sensor data for path quality detection.
+
+    \item[\textbf{R14 - Sensor data logging}] 
+    When automatic mode is enabled and a trip is being recorded, the system shall periodically sample accelerometer and gyroscope data and associate them with geographic positions.
+
+    \item[\textbf{R15 - Detection of candidate obstacles}] 
+    The system shall process sensor data and detect significant events (e.g., strong jolts) as candidate potholes or rough path segments.
+
+    \item[\textbf{R16 - Candidate list presentation}] 
+    After a trip ends, the system shall present the user with a list or map of candidate issues detected during that trip.
+
+    \item[\textbf{R17 - User confirmation/correction}] 
+    For each candidate, the user shall be able to confirm it, reject it, or edit its details (type, severity, or position) before it becomes a report.
+
+    \item[\textbf{R18 - Conversion into reports}] 
+    Confirmed candidates shall be stored as \textit{PathSegmentReport} objects associated with path segments. Rejected candidates shall not be stored as publishable data.
+\end{description}
+
+\paragraph{ Path search and visualization}
+\begin{description}
+    \item[\textbf{R19 - Public path search}] 
+    The system shall allow any user, whether registered or not, to specify an origin and destination and request bike paths.
+
+    \item[\textbf{R20 - Route computation}] 
+    The system shall compute one or more route candidates using external map and routing services in combination with the internal path database.
+
+    \item[\textbf{R21 - Path scoring}] 
+    The system shall compute a score for each candidate path based on:
+    \begin{itemize}
+        \item Consolidated statuses of included segments.
+        \item Severity and number of obstacles.
+        \item Route effectiveness (e.g., distance, elevation, number of turns).
+    \end{itemize} 
+    \item[\textbf{R22 - Ordered path list}] 
+    The system shall present candidate paths ordered by decreasing score.
+
+    \item[\textbf{R23 - Path visualization}] 
+    The system shall visualize a selected path on a map with overlays representing segment status and reported obstacles.
+\end{description}
+
+\paragraph{Data Merging}
+\begin{description}
+    \item[\textbf{R24 - Segment report storage}] 
+    The system shall store all PathSegmentReports with timestamps and user identifiers.
+
+    \item[\textbf{R25 - Periodic merging}] 
+    The system shall periodically recompute the consolidated status of each segment based on all available reports.
+
+    \item[\textbf{R26 - Freshness handling}] 
+    The merging process shall weigh newer reports more heavily than older ones.
+
+    \item[\textbf{R27 - Majority handling}] 
+    If multiple reports with similar freshness disagree, the consolidated status shall follow the majority assessment (e.g., by count or weighted count).
+\end{description}
+
+\paragraph{Administration and data quality}
+\begin{description}
+    \item[\textbf{R28 - User Blocking}] 
+    The system shall allow administrators to block users who repeatedly submit obviously false data.
+
+    \item[\textbf{R29 - Data Removal}] 
+    Administrators shall be able to remove or hide problematic reports.
+\end{description}
+
+\subsubsection{Use Case Diagrams}
+The diagrams that from Fig. ~\ref{fig:use_case_dig1} to Fig. ~\ref{fig:use_case_dig4} are the use case diagrams shown below:
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/use_case_diagrams/Diagram_1_Account_Management _Trip_Recording.jpg}
+\caption{\label{fig:use_case_dig1}Use Case Diagram for Account Management.}
+\end{figure}
+
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/use_case_diagrams/Diagram 2 – Manual Path Contribution.jpg}
+\caption{\label{fig:use_case_dig2}Use Case Diagram for Manual path Contribution.}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/use_case_diagrams/Diagram 3 – Automatic Path Information & Confirmation.jpg}
+\caption{\label{fig:use_case_dig3}Use Case Diagram for Automatci Path Information and Confirmation.}
+\end{figure}
+
+
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/use_case_diagrams/Diagram 4 – Path Search, Scoring & Merging.jpg}
+\caption{\label{fig:use_case_dig4}Use Case Diagram for Path Search, Scoring and Merging.}
+\end{figure}
+
+
+\newpage
+\subsubsection{Use Cases}
+The use cases of Best Bike Path (BBP) are shown as Table.~\ref{table:use_case_table1} to Table.~\ref{table:use_case_table7}
+
+\textbf{UC1: User Registration}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{User Registration} \\
+\hline
+\textbf{Actors} & Visitor \\
+\hline
+\textbf{Entry Condition} & Visitor opens the BBP application. \\
+\hline
+\textbf{Event Flow} &
+(a) The visitor selects \textit{Sign Up}. \\[0.3em]
+& (b) The system displays the registration form requesting email, password, and optional name. \\[0.3em]
+& (c) The visitor enters the required information and confirms the registration. \\[0.3em]
+& (d) The system validates the provided data and creates a new user account. \\[0.3em]
+& (e) The system confirms successful registration and may automatically log the user in. \\
+\hline
+\textbf{Exit Condition} & A new user account exists. \\
+\hline
+\textbf{Exceptions} & Email already used; invalid email format; weak password. \\
+\hline
+\end{tabular}
+\caption{Use Case 1: User Registration}
+\label{table:use_case_table1}
+\end{table}
+
+\textbf{UC2: User Login}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{User Login} \\
+\hline
+\textbf{Actors} & Registered User \\
+\hline
+\textbf{Entry Condition} & User opens the BBP application. \\
+\hline
+\textbf{Event Flow} &
+(a) The user selects \textit{Login}. \\[0.3em]
+& (b) The system prompts the user to enter credentials. \\[0.3em]
+& (c) The user enters their email and password. \\[0.3em]
+& (d) The system validates the provided credentials. \\[0.3em]
+& (e) The system grants access and displays the user dashboard. \\
+\hline
+\textbf{Exit Condition} & The user is successfully logged in. \\
+\hline
+\textbf{Exceptions} & Invalid credentials; account blocked. \\
+\hline
+\end{tabular}
+\caption{Use Case 2: User Login}
+\label{table:use_case_table2}
+\end{table}
+
+\newpage
+
+\textbf{UC3: Record Trip}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{Record Trip} \\
+\hline
+\textbf{Actors} & Registered User \\
+\hline
+\textbf{Entry Condition} & User is logged in. \\
+\hline
+\textbf{Event Flow} &
+(a) The user taps \textit{Start Trip}. \\[0.3em]
+& (b) The system requests permission to access location data, if not already granted. \\[0.3em]
+& (c) The system begins logging GPS points and the trip start time. \\[0.3em]
+& (d) The user rides while the system continuously updates position and trip statistics. \\[0.3em]
+& (e) The user taps \textit{Stop Trip}. \\[0.3em]
+& (f) The system stops logging, computes trip statistics, and saves the completed trip. \\[0.3em]
+& (g) The system requests weather data and attaches it to the trip, if available. \\
+\hline
+\textbf{Exit Condition} & The completed trip is stored with statistics and, if available, weather information. \\
+\hline
+\textbf{Exceptions} & Location permission denied; GPS unavailable; network unavailable for weather data (trip is stored without weather information). \\
+\hline
+\end{tabular}
+\caption{Use Case 3: Record Trip}
+\label{table:use_case_table3}
+\end{table}
+
+\textbf{UC4: Add Manual Path Information}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{Add Manual Path Information} \\
+\hline
+\textbf{Actors} & Registered User \\
+\hline
+\textbf{Entry Condition} & User is logged in. \\
+\hline
+\textbf{Event Flow} &
+(a) The user opens \textit{Contribute Paths}. \\[0.3em]
+& (b) The system displays a map and tools for selecting streets or drawing a path. \\[0.3em]
+& (c) The user defines one or more path segments. \\[0.3em]
+& (d) For each segment, the user selects a path status. \\[0.3em]
+& (e) The user optionally adds obstacles to segments, specifying type and severity. \\[0.3em]
+& (f) The user chooses whether the contributed information is publishable. \\[0.3em]
+& (g) The system saves the path segments and associated reports. \\
+\hline
+\textbf{Exit Condition} & Path segment reports are created and stored; consolidated segment status may be updated. \\
+\hline
+\textbf{Exceptions} & Incomplete information (e.g., no segments selected); map service unavailable. \\
+\hline
+\end{tabular}
+\caption{Use Case 4: Add Manual Path Information}
+\label{table:use_case_table4}
+\end{table}
+
+\newpage
+
+\textbf{UC5: Automatic Detection Confirmation}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{Automatic Detection Confirmation} \\
+\hline
+\textbf{Actors} & Registered User \\
+\hline
+\textbf{Entry Condition} & User has completed a trip with automatic mode enabled. \\
+\hline
+\textbf{Event Flow} &
+(a) After the trip, the system computes candidate obstacles. \\[0.3em]
+& (b) The system notifies the user that new candidates are available for review. \\[0.3em]
+& (c) The user opens the review screen. \\[0.3em]
+& (d) The system lists detected candidates with map positions and basic information. \\[0.3em]
+& (e) For each candidate, the user selects \textit{Confirm}, \textit{Reject}, or \textit{Edit}. \\[0.3em]
+& (f) The system converts confirmed items into reports, discards rejected candidates, and saves any edits. \\
+\hline
+\textbf{Exit Condition} & Confirmed obstacles are stored as publishable or pending publication according to the user’s choice. \\
+\hline
+\textbf{Exceptions} & User skips the review; in this case, candidate obstacles are not published. \\
+\hline
+\end{tabular}
+\caption{Use Case 5: Automatic Detection Confirmation}
+\label{table:use_case_table5}
+\end{table}
+
+\textbf{UC6: Search Path Between Origin and Destination}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{Search Path Between Origin and Destination} \\
+\hline
+\textbf{Actors} & Guest User, Registered User \\
+\hline
+\textbf{Entry Condition} & User is on the BBP main screen. \\
+\hline
+\textbf{Event Flow} &
+(a) The user enters an origin and destination as addresses or map points. \\[0.3em]
+& (b) The user initiates the search. \\[0.3em]
+& (c) The system geocodes the origin and destination. \\[0.3em]
+& (d) The system computes one or more candidate routes. \\[0.3em]
+& (e) For each route, the system retrieves consolidated segment statuses and reported obstacles. \\[0.3em]
+& (f) The system computes scores for each route and sorts them accordingly. \\[0.3em]
+& (g) The system displays a list of candidate routes and allows the user to select one. \\[0.3em]
+& (h) The system displays the selected path on the map with detailed information. \\
+\hline
+\textbf{Exit Condition} & The user views at least one candidate path on the map. \\
+\hline
+\textbf{Exceptions} & Invalid addresses; no path found; external services unavailable. \\
+\hline
+\end{tabular}
+\caption{Use Case 6: Search Path Between Origin and Destination}
+\label{table:use_case_table6}
+\end{table}
+
+\newpage
+
+\textbf{UC7: Merging Path Reports}
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{3.5cm}|p{10.5cm}|}
+\hline
+\textbf{Name} & \textbf{ Merging Path Reports} \\
+\hline
+\textbf{Actors} & Time (scheduled job), Administrator (indirect observer) \\
+\hline
+\textbf{Entry Condition} & The system has accumulated multiple reports for path segments. \\
+\hline
+\textbf{Event Flow} &
+(a) At scheduled intervals, the merging procedure is triggered. \\[0.3em]
+& (b) The system gathers all reports associated with each path segment. \\[0.3em]
+& (c) The system groups reports by segment and sorts them by timestamp. \\[0.3em]
+& (d) The system applies merging rules based on report freshness and majority. \\[0.3em]
+& (e) The system updates each segment’s consolidated status and last-updated date. \\
+\hline
+\textbf{Exit Condition} & Consolidated segment status reflects the latest known information. \\
+\hline
+\textbf{Exceptions} & None specific; the merging process may be skipped if no new reports are available. \\
+\hline
+\end{tabular}
+\caption{Use Case 7: Merging Path Reports}
+\label{table:use_case_table7}
+\end{table}
+
+\newpage
+
+\subsubsection{Sequence Diagrams}
+The diagrams from Fig.~\ref{fig:sequence_dig1} to Fig.~\ref{fig:sequence_dig7} represents use cases from UC1 to UC7
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/sequence_diagrams/UC1_page-0001.jpg}
+\caption{\label{fig:sequence_dig1}Sequence Diagram for UC1-User Registration.}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/sequence_diagrams/UC2_page-0001.jpg}
+\caption{\label{fig:sequence_dig2}Sequence Diagram for UC2-User Login.} 
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{Images/sequence_diagrams/UC3_page-0001.jpg}
+\caption{\label{fig:sequence_dig3}Sequence Diagram for UC3- Record Trip}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{Images/sequence_diagrams/UC3_page-0001.jpg}
+\caption{\label{fig:sequence_dig4}Sequence Diagram for UC4- Add Manual Path Information}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/sequence_diagrams/uc5_page-0001.jpg}
+\caption{\label{fig:sequence_dig5}Sequence Diagram for UC5- Automatic Dectection Confirmation}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{Images/sequence_diagrams/uc6_page-0001.jpg}
+\caption{\label{fig:sequence_dig6}Sequence Diagram for UC6- Search Path Between Origin and Destination}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/sequence_diagrams/uc7_page-0001.jpg}
+\caption{\label{fig:sequence_dig7}Sequence Diagram for UC7- Mergin Path Reports}
+\end{figure}
+
+
+
+
+
+
+\subsubsection{Requirement Mapping}
+
+% -------------------- G1 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G1: Personal trip tracking:} Registered users can record, store, and review trips with key statistics and map visualization.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R1 -- User registration \newline
+R2 -- User login \newline
+R3 -- Start trip recording \newline
+R4 -- Stop trip recording \newline
+R5 -- Trip statistics computation \newline
+R6 -- Trip history visualization \newline
+R7 -- Trip weather enrichment
+&
+D1 -- GPS accuracy is sufficient to associate positions with map segments \newline
+D4 -- External map and weather services return correct data \newline
+D5 -- Users’ devices have intermittent or active network connectivity \newline
+D10 -- Users have a compatible device with GPS and network access
+\\
+\hline
+\end{tabular}
+\caption{Goal G1 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+
+
+% -------------------- G2 --------------------
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G2: Manual path information:} Registered users can insert or edit path segment statuses and obstacles and decide whether each contribution is publishable.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R8 -- Manual path creation \newline
+R9 -- Segment status assignment \newline
+R10 -- Obstacle creation \newline
+R11 -- Mark contribution as publishable or private \newline
+R12 -- Edit manual contributions
+&
+D3 -- Users generally act in good faith and report path status honestly \newline
+D6 -- A bike path is defined as a dedicated bike track or low-traffic road \newline
+D7 -- Conflicting reports can be meaningfully merged \newline
+D10 -- Users have a reliable internet connection
+\\
+\hline
+\end{tabular}
+\caption{Goal G2 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+
+% -------------------- G3 --------------------
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G3: Automated path information:} Registered users can enable sensor-assisted acquisition while biking; BBP detects candidate issues that must be confirmed or corrected by the user before publication.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R13 -- Enable/disable automatic mode \newline
+R14 -- Sensor data logging \newline
+R15 -- Detection of candidate obstacles \newline
+R16 -- Candidate list presentation \newline
+R17 -- User confirmation, rejection, or correction \newline
+R18 -- Conversion of confirmed candidates into reports
+&
+D2 -- Device sensors are calibrated and reliable enough to detect pothole-like events \newline
+D5 -- Devices have sufficient computational capability and battery \newline
+D8 -- Users explicitly enable automatic sensor-based data collection \newline
+D10 -- Users have compatible devices and OS support
+\\
+\hline
+\end{tabular}
+\caption{Goal G3 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+% -------------------- G4 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G4: Route search and visualization:} Any user (registered or guest) can request bike paths between origin and destination and visualize one or more route options.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R19 -- Public path search \newline
+R20 -- Route computation \newline
+R22 -- Ordered path list \newline
+R23 -- Path visualization
+&
+D4 -- External map and routing services are available \newline
+D6 -- Bike paths are correctly represented in map provider data \newline
+D10 -- Users have a working internet connection
+\\
+\hline
+\end{tabular}
+\caption{Goal G4 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+% -------------------- G5 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G5: Path scoring:} BBP orders multiple route options by a path score combining segment quality and route effectiveness.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R21 -- Path scoring
+&
+D7 -- A meaningful consolidated status can be derived from reports \newline
+D4 -- Map data and segment metadata are accurate \newline
+D10 -- External services respond within acceptable time
+\\
+\hline
+\end{tabular}
+\caption{Goal G5 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+% -------------------- G6 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G6: Merging:} BBP merges publishable information from multiple users about the same segments considering freshness and confirmations or contradictions.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R24 -- Segment report storage \newline
+R25 -- Periodic merging \newline
+R26 -- Freshness handling \newline
+R27 -- Majority handling
+&
+D3 -- Users act in good faith when submitting reports \newline
+D7 -- Time- and majority-based rules produce reliable consolidated status \newline
+D10 -- Backend infrastructure supports scheduled jobs
+\\
+\hline
+\end{tabular}
+\caption{Goal G6 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+% -------------------- G7 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G7: Privacy and compliance:} Personal and location data are protected and publication is always under user control.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R11 -- Publishability control \newline
+R17 -- User confirmation before publication \newline
+R29 -- Data removal by administrators
+&
+Regulatory constraint -- GDPR or equivalent data protection regulations apply \newline
+D8 -- Users explicitly consent to sensor usage \newline
+D10 -- Secure communication channels are available
+\\
+\hline
+\end{tabular}
+\caption{Goal G7 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+% -------------------- G8 --------------------
+\begin{table}[H]
+\centering
+\begin{tabular}{|p{7cm}|p{7cm}|}
+\hline
+\multicolumn{2}{|p{15cm}|}{\textbf{G8: Weather \& context enrichment:} BBP enriches trip data with meteorological information retrieved from an external service.} \\
+\hline
+\textbf{Mapped Functional Requirements} &
+\textbf{Mapped Domain Assumptions / Dependencies} \\
+\hline
+R7 -- Trip weather enrichment
+&
+D4 -- Weather service is available and returns correct data \newline
+D5 -- Network connectivity exists at least intermittently \newline
+D10 -- External APIs respond within acceptable time
+\\
+\hline
+\end{tabular}
+\caption{Goal G8 Mapping to Functional Requirements and Domain Assumptions}
+\end{table}
+
+
+\subsection{Performance Requirements}
+\begin{enumerate}
+    \item The system should return a list of candidate paths between origin and destination within 10 seconds for typical urban distances (up to ~15 km) under normal load.
+    \item Trip recording must sample GPS at least every 5 seconds when in motion.
+    \item Sensor sampling should be frequent enough (e.g., $\geq 10$ Hz) to detect pothole-like events, but not so frequent as to drain the battery excessively.
+    \item Under normal conditions, the system should support concurrent use by several thousand users without noticeable degradation of response time for basic operations (trip list, path search).
+
+\end{enumerate}
+
+\subsection{Design Constraints}
+\subsubsection{Standards Compliance}
+\begin{enumerate}
+    \item \textbf{Data protection:} GDPR or analogous regulations in target regions.
+    \item \textbf{Security:} Recommended best practices (e.g., OWASP for web/mobile applications).
+    \item \textbf{Map licensing:} Comply with provider’s license (e.g., attribution, usage limits).
+\end{enumerate}
+
+\subsubsection{Hardware Limitations}
+\begin{enumerate}
+    \item BBP is primarily used on smartphones; performance and UI must accommodate mid-range devices (limited CPU, battery and memory).
+    \item GPS and sensors may be temporarily unavailable or degraded (e.g., tunnels, urban canyons).
+\end{enumerate}
+
+\subsubsection{Any Other Constraint}
+\begin{enumerate}
+    \item Application requires a reasonably recent browser/OS with support for HTTPS and JavaScript.
+    \item Offline usage: full trip recording should work with intermittent network; upload and path search may require connectivity.
+\end{enumerate}
+
+\subsection{Software System Attributes}
+\subsubsection{Reliiability}
+\begin{enumerate}
+    \item Trips and path reports should be stored durably; server uses replicated storage and regular backups.
+    \item Failure during recording (e.g., app crash) should not lose all data; partial tracks should be salvaged when possible.
+\end{enumerate}
+
+\subsubsection{Availablity}
+\begin{enumerate}
+    \item  BBP should target at least 99\% uptime.
+
+    \item Core services (trip storage and path search) should be deployed with redundancy.
+\end{enumerate}
+
+\subsubsection{Security}
+\begin{enumerate}
+    \item All communications are over HTTPS.
+    \item Passwords stored securely or external identity provider used.
+    \item Access control: only the owner (and admins) can view private trips; only publishable info is visible to others.
+    \item Rate limiting and request validation to reduce abuse.
+\end{enumerate}
+\subsubsection{Maintainability}
+\begin{enumerate}
+    \item Modular design separating front-end, back-end APIs and integration with external services.
+
+    \item Well-documented public APIs and clear separation between trip logging, path search and merging modules.
+
+\end{enumerate}
+
+\subsubsection{Portability}
+\begin{enumerate}   
+    \item Front-end should run on major mobile OSes and modern browsers.
+
+
+    \item Back-end deployable on common cloud infrastructures using containerization.
+
+\end{enumerate}

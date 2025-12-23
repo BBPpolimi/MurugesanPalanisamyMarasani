@@ -1,0 +1,157 @@
+\subsection{Purpose}
+Cities and suburbs often offer multiple ways to reach a destination by bicycle, but the best route depends on more than just distance. Surface quality, potholes, dangerous crossings, temporary construction and car traffic exposure can all influence safety and comfort. At the same time, cyclists increasingly want quantified trip histories (distance, speed, recurring commutes, weekly totals) that are easy to record and review.\\ 
+Best Bike Paths (BBP) is a software system that lets users: 
+\begin{enumerate}
+\item Record their bike trips and store them as part of a personal log. 
+\item Contribute information about bike paths, including surface quality and obstacles. 
+\item Query the system for “best” bike paths between two points, based on both quality and effectiveness of the route.
+\item Be a guest user and make use of the fastest and easiest route from point A to point B.
+\end{enumerate}
+
+\subsubsection{Goals}
+\begin{description}
+  \item[\textbf{G1 --}] \textbf{Personal trip tracking:} Registered users can record, store, and review trips with key statistics and map visualization.
+
+  \item[\textbf{G2 --}] \textbf{Manual path information:} Registered users can insert or edit path segment statuses and obstacles and decide whether each contribution is publishable.
+
+  \item[\textbf{G3 --}] \textbf{Automated path information:} Registered users can enable sensor-assisted acquisition while biking; BBP detects candidate issues that must be confirmed or corrected by the user before publication.
+
+  \item[\textbf{G4 --}] \textbf{Route search and visualization:} Any user (registered or guest) can request bike paths between an origin and a destination and visualize one or more route options.
+
+  \item[\textbf{G5 --}] \textbf{Path scoring:} BBP orders multiple route options by a path score combining segment quality and route effectiveness.
+
+  \item[\textbf{G6 --}] \textbf{Merging:} BBP merges publishable information from multiple users about the same segments, considering freshness and confirmations or contradictions.
+
+  \item[\textbf{G7 --}] \textbf{Privacy and compliance:} Personal and location data are protected; publication is always under user control.
+
+  \item[\textbf{G8 --}] \textbf{Weather and context enrichment:} When possible, BBP enriches trip data with meteorological information such as temperature, wind, and weather conditions retrieved from an external service.
+\end{description}
+
+
+
+\subsection{Scope}
+BBP is a mobile-first web application (and/or native app) that interacts with user's devices (GPS, accelerometer, gyroscope, network) and with external services (maps and weather). The core domain is community-maintained bike path information plus individual trip logs.
+The system covers:
+\begin{enumerate}
+  \item Trip recording (real-time tracking, saving, reviewing).
+  \item Manual input of bike path data (streets, segments, status, obstacles).
+  \item Automatic acquisition of bike path data (GPS tracks and sensor events).
+  \item User confirmation or correction of automatically detected issues before publishing.
+  \item Path search between origin and destination for any user, ranked by path score.
+  \item Merging of multiple user's reports into consolidated path status information.
+\end{enumerate}
+
+\subsubsection{World Phenomena}
+These are facts/events that happen in the real world, possibly observed by the system but not controlled by it:
+\begin{description}[labelwidth=3em, labelsep=0.5em, leftmargin=!, align=left]
+  \item[\textbf{WP1 --}] Cyclists ride in the real world, following some route along streets and bike tracks.
+  \item[\textbf{WP2 --}] Cyclists use their mobile devices while riding; the device’s GPS position and motion sensors change over time.
+  \item[\textbf{WP3 --}] The physical road surface and infrastructure change quality over time (e.g., a new pothole appears, a segment is repaired).
+  \item[\textbf{WP4 --}] Weather conditions (temperature, wind, rain, etc.) evolve over time.
+  \item[\textbf{WP5 --}] Users judge the quality and safety of paths (e.g., “optimal”, “requires maintenance”).
+  \item[\textbf{WP6 --}] Different users may have conflicting judgments on the same path.
+  \item[\textbf{WP7 --}] Map providers maintain base map data (streets, bike lanes).
+  \item[\textbf{WP8 --}] Weather providers expose meteorological data via an external service.
+\end{description}
+
+\subsubsection{Shared Phenomena}
+These are phenomena that involve both the world and the BBP system:
+\begin{description} [labelwidth=3em, labelsep=0.5em, leftmargin=!, align=left]
+  \item[\textbf{SP1 --}] A user registers and logs in to BBP.
+  \item[\textbf{SP2 --}] A registered user starts/stops trip recording; BBP stores GPS tracks and timing.
+  \item[\textbf{SP3 --}] BBP queries the device's GPS and motion sensors while a trip is ongoing.
+  \item[\textbf{SP4 --}] BBP stores, displays and updates statistics about a user's trip.
+  \item[\textbf{SP5 --}] A user manually inserts or edits path information (streets, segments, status, obstacles).
+  \item[\textbf{SP6 --}] BBP interprets raw sensor data as possible obstacles or rough patches.
+  \item[\textbf{SP7 --}] BBP asks the user to confirm or correct automatically detected issues.
+  \item[\textbf{SP8 --}] BBP marks path information as “publishable” or “private” according to user choice.
+  \item[\textbf{SP9 --}] Any user specifies an origin and destination; BBP computes one or more bike paths.
+  \item[\textbf{SP10 --}] BBP computes a score for each candidate path and returns an ordered list with map visualization.
+  \item[\textbf{SP11 --}] Different users submit information about the same path; BBP merges it into a consolidated status.
+  \item[\textbf{SP12 --}] BBP contacts an external weather service to enrich recorded trips with weather data.
+\end{description}
+
+
+\subsection{Definitions, Acronyms, Abbreviations}
+\subsubsection{Definitions}
+
+\begin{enumerate}
+  \item \textbf{Bike path}: A route where either a dedicated bike track exists or car traffic is light and speed limits are compatible with typical cycling speeds.
+  
+  \item \textbf{Path segment}: A contiguous portion of a route, usually corresponding to a street segment in a map provider dataset.
+  
+  \item \textbf{Path status}: A qualitative label describing segment condition (Optimal, Medium, Sufficient, Requires Maintenance).
+  
+  \item \textbf{Obstacle}: A localized issue on a segment (pothole, debris, bump, dangerous crossing, etc.) with a type, severity, and location.
+  
+  \item \textbf{Trip}: A recorded ride by a registered user including GPS track and computed statistics.
+  
+  \item \textbf{Publishable information}: Path-related data the owner chooses to share with the community.
+  
+  \item \textbf{Candidate obstacle}: An issue detected automatically from sensor data that is not publishable until user confirmation.
+  
+  \item \textbf{Consolidated status}: The system’s current best estimate for a segment status obtained by merging multiple reports.
+  
+  \item \textbf{Trip statistics}: Distance, duration, average speed, maximum speed, elevation gain, etc.
+\end{enumerate}
+
+\subsubsection{Acronyms/Abbreviations}
+\begin{enumerate}
+\item \textbf{BBP}: Best Bike Paths
+\item \textbf{GPS}: Global Positioning System
+\item \textbf{API}: Application Programming Interface
+\item \textbf{NFR}: Non-functional requirement
+\item \textbf{UC}: Use case
+\item \textbf{OS}: Operating system
+
+\end{enumerate}
+
+\subsubsection{Abbreviations}
+\begin{enumerate}
+\item \textbf{G}: Goal
+\item \textbf{WP}: World Phenomenon
+\item \textbf{SP}: Shared Phenomena
+\item \textbf{R}: Requirement
+\end{enumerate}
+
+\subsection{Revision History}
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|p{9cm}|}
+\hline
+\textbf{Version} & \textbf{Date} & \textbf{Description} \\
+\hline
+1.0 & 23/12/2025 & Full Document of RASD. \\
+\hline
+\end{tabular}
+\caption{Document Version History}
+\end{table}
+
+
+\subsection{Reference Documents}
+The assignment for this document and all the information included refer to the following documentation:
+\begin{enumerate}
+    \item The specification for the 2025/26 Requirement Engineering and Design Project for the Software Engineering II course.
+    \item The slides on the webeep page of the Software Engineering II course.
+    \item Sample RASD “Students \& Companies”
+    \item Alloy Analyzer \cite{alloy} for Formal Analysis of Alloy.
+    \item Figma \cite{figma} for UI/UX design.
+    \item ChatGpt \cite{chatgpt} for Paraprashing the text.
+    \item Overleaf \cite{overleaf} for RASD document preparation.
+    \item Planttext \cite{planttext} for UML Diagrams Creation.
+    
+\end{enumerate}
+
+\subsection{Document Structure}
+The entire document is structured as follows:
+\begin{enumerate}
+  \item \textbf{Introduction: } a brief description of the project
+  \item \textbf{Overall Description: } Description of the system including scenarios and domain model. 
+  \item \textbf{Specific Requirements: } Detailed requirements: interfaces, functional requirements, diagrams, performance requirements, constraints and software attributes. 
+  \item \textbf{Formal Analysis Using Alloy: } Formalizes part of the domain using Alloy programming. 
+  \item \textbf{Effort Spent: } Report on efforts spent by each member of the team. 
+  \item \textbf{References: }  References for the project.
+\end{enumerate}
+
+
+%what you write here is a comment that is not shown in the final text]

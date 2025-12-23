@@ -1,0 +1,397 @@
+\noindent In this section, we use Alloy to check that the BBP reporting and consolidation logic behaves as intended. We first describe the main Alloy model and its key components, and then walk through several scenarios that demonstrate the expected behavior of the system.
+
+% ---------------------------------------------------------
+\subsection{Main Alloy Model}
+% ---------------------------------------------------------
+
+\begin{lstlisting}[caption={Main Alloy model: reporting and consolidation}]
+module bbp
+open util/integer
+
+sig Email {}
+abstract sig Bool {}
+one sig True, False extends Bool {}
+
+abstract sig SegmentStatus {}
+one sig Unknown, Optimal, Medium, Sufficient, RequiresMaintenance extends SegmentStatus {}
+
+
+sig RegisteredUser {
+  email   : one Email,
+  blocked : one Bool
+}
+
+sig Trip {
+  owner : one RegisteredUser,
+  start : one Int,
+  end   : one Int
+}
+
+sig PathSegment {
+  consolidated : one ConsolidatedStatus
+}
+
+sig ConsolidatedStatus {
+  segment     : one PathSegment,
+  status      : one SegmentStatus,
+  lastUpdated : one Int
+}
+
+sig PathSegmentReport {
+  author      : one RegisteredUser,
+  segment     : one PathSegment,
+  status      : one SegmentStatus,
+  ts          : one Int,
+  publishable : one Bool
+}
+
+sig CandidateIssue {
+  trip           : one Trip,
+  reporter       : one RegisteredUser,
+  detectedAt     : one Int,
+  seg            : one PathSegment,
+  publishIntent  : one Bool,
+  producedReport : one PathSegmentReport
+}
+
+
+// Helpers
+
+fun pubReports[s: PathSegment] : set PathSegmentReport {
+  { r: PathSegmentReport | r.segment = s and r.publishable = True }
+}
+
+fun latestPubReportsByTime[s: PathSegment] : set PathSegmentReport {
+  { r: pubReports[s] | no r2: pubReports[s] | r.ts < r2.ts }
+}
+
+fun maxPubTime[s: PathSegment] : lone Int {
+  { ti: Int |
+      some r: pubReports[s] | r.ts = ti
+      and no r2: pubReports[s] | r2.ts > ti
+  }
+}
+
+fun countStatus[rs: set PathSegmentReport, st: SegmentStatus] : Int {
+  #( { r: rs | r.status = st } )
+}
+
+fun majorityStatusAtLatestTime[s: PathSegment] : set SegmentStatus {
+  let L = latestPubReportsByTime[s] |
+    { st: SegmentStatus - Unknown |
+        all st2: SegmentStatus - Unknown |
+          countStatus[L, st] >= countStatus[L, st2]
+    }
+}
+
+
+// Facts (invariants)
+
+fact UniqueEmail {
+  all disj u1, u2: RegisteredUser | u1.email != u2.email
+}
+
+fact TripWellFormed {
+  all tr: Trip | tr.start <= tr.end
+}
+
+fact CandidateOwnership {
+  all c: CandidateIssue | c.trip.owner = c.reporter
+}
+
+fact CandidateCreatesReport {
+  all c: CandidateIssue |
+    c.producedReport.author = c.reporter
+    and c.producedReport.segment = c.seg
+    and c.producedReport.ts = c.detectedAt
+    and c.producedReport.publishable = c.publishIntent
+    and c.producedReport.status != Unknown
+}
+
+fact BlockedUsersCannotReport {
+  no r: PathSegmentReport | r.author.blocked = True
+}
+
+fact ConsolidatedStatusBijection {
+  all s: PathSegment | s.consolidated.segment = s
+  all cs: ConsolidatedStatus | cs = cs.segment.consolidated
+}
+
+fact ConsolidationFromPublishableReports {
+  all s: PathSegment |
+    (no pubReports[s]) implies (
+      s.consolidated.status = Unknown
+      and s.consolidated.lastUpdated = 0
+    )
+
+  all s: PathSegment |
+    (some pubReports[s]) implies (
+      s.consolidated.lastUpdated = maxPubTime[s]
+      and s.consolidated.status in majorityStatusAtLatestTime[s]
+    )
+}
+\end{lstlisting}
+
+
+\subsection{Scenario S1: Publishable confirmed issue updates the segment}
+A user confirms an automatically detected issue and chooses to publish it. The report becomes public, so the segment consolidated status is updated using that report.
+Here, the report time is $t=5$, so the consolidated time becomes $5$ as shown in Fig.~\ref{fig:alloy_dig1} and the status becomes \texttt{RequiresMaintenance}.
+
+\begin{lstlisting}[caption={Scenario S1: confirmed publishable candidate updates consolidation}]
+pred Scenario_S1_ConfirmedCandidateUpdatesConsolidation {
+  some u: RegisteredUser, tripVar: Trip, s: PathSegment, c: CandidateIssue, r: PathSegmentReport | {
+    u.blocked = False
+
+    tripVar.owner = u
+    tripVar.start = 0
+    tripVar.end = 10
+
+    c.trip = tripVar
+    c.reporter = u
+    c.seg = s
+    c.detectedAt = 5
+    c.publishIntent = True
+
+    c.producedReport = r
+    r.author = u
+    r.segment = s
+    r.ts = 5
+    r.publishable = True
+    r.status = RequiresMaintenance
+
+    s.consolidated.lastUpdated = 5
+    s.consolidated.status = RequiresMaintenance
+  }
+}
+
+run Scenario_S1_ConfirmedCandidateUpdatesConsolidation for
+  1 RegisteredUser, 1 Trip, 1 PathSegment, 1 ConsolidatedStatus, 1 CandidateIssue, 1 PathSegmentReport,
+  1 Email, 8 Int
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario1.png}
+\caption{\label{fig:alloy_dig1}Scenario 1}
+\end{figure}
+
+
+\subsection{Scenario S2: Private confirmed issue does not affect the public consolidated status}
+A user confirms an issue but marks it private (\texttt{publishable=False}).
+Because only publishable reports are used for consolidation, the segment stays \texttt{Unknown} and \texttt{lastUpdated} stays $0$ as shown in Fig.~\ref{fig:alloy_dig2}.
+
+\begin{lstlisting}[caption={Scenario S2: private report is ignored by consolidation}]
+pred Scenario_S2_PrivateCandidateDoesNotAffectConsolidation {
+  some u: RegisteredUser, tr: Trip, s: PathSegment, c: CandidateIssue, r: PathSegmentReport | {
+    u.blocked = False
+
+    tr.owner = u
+    tr.start = 0
+    tr.end = 10
+
+    c.trip = tr
+    c.reporter = u
+    c.seg = s
+    c.detectedAt = 5
+    c.publishIntent = False
+
+    c.producedReport = r
+    r.author = u
+    r.segment = s
+    r.ts = 5
+    r.publishable = False
+    r.status = RequiresMaintenance
+
+    no pubReports[s]
+    s.consolidated.status = Unknown
+    s.consolidated.lastUpdated = 0
+  }
+}
+
+run Scenario_S2_PrivateCandidateDoesNotAffectConsolidation for
+  1 RegisteredUser, 1 Trip, 1 PathSegment, 1 ConsolidatedStatus, 1 CandidateIssue, 1 PathSegmentReport,
+  1 Email, 8 Int
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario2.png}
+\caption{\label{fig:alloy_dig2}Scenario 2}
+\end{figure}
+
+\subsection{Scenario S3: Blocked user cannot produce a report (UNSAT)}
+A blocked user tries to produce a publishable report.
+This must be impossible because the model forbids reports authored by blocked users.
+When running this scenario, Alloy should return \emph{no instance found} as shown in Fig.~\ref{fig:alloy_dig3}
+
+\begin{lstlisting}[caption={Scenario S3: blocked user producing a report is unsatisfiable}]
+pred Scenario_S3_BlockedUserCannotProduceReport {
+  some u: RegisteredUser, tr: Trip, s: PathSegment, c: CandidateIssue, r: PathSegmentReport | {
+    u.blocked = True
+
+    tr.owner = u
+    tr.start = 0
+    tr.end = 10
+
+    c.trip = tr
+    c.reporter = u
+    c.seg = s
+    c.detectedAt = 5
+    c.publishIntent = True
+
+    c.producedReport = r
+    r.author = u
+    r.segment = s
+    r.ts = 5
+    r.publishable = True
+    r.status = RequiresMaintenance
+  }
+}
+
+run Scenario_S3_BlockedUserCannotProduceReport for
+  1 RegisteredUser, 1 Trip, 1 PathSegment, 1 ConsolidatedStatus, 1 CandidateIssue, 1 PathSegmentReport,
+  1 Email, 8 Int
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario3.png}
+\caption{\label{fig:alloy_dig3}Scenario 3}
+\end{figure}
+
+
+\subsection{Scenario S4: Two publishable reports, newest one is used}
+Two publishable reports exist for the same segment at different times ($t=3$ and $t=7$).
+The consolidated status must use the newest publishable timestamp, so it updates using the $t=7$ report as shown in Fig.~\ref{fig:alloy_dig4}.
+
+\begin{lstlisting}[caption={Scenario S4: freshness rule (latest report wins)}]
+pred Scenario_S4_TwoPublishableReportsLatestWins {
+  some u: RegisteredUser, tr: Trip, s: PathSegment, c1, c2: CandidateIssue, r1, r2: PathSegmentReport | {
+    u.blocked = False
+
+    tr.owner = u
+    tr.start = 0
+    tr.end = 10
+
+    c1.trip = tr
+    c1.reporter = u
+    c1.seg = s
+    c1.detectedAt = 3
+    c1.publishIntent = True
+    c1.producedReport = r1
+    r1.author = u
+    r1.segment = s
+    r1.ts = 3
+    r1.publishable = True
+    r1.status = RequiresMaintenance
+
+    c2.trip = tr
+    c2.reporter = u
+    c2.seg = s
+    c2.detectedAt = 7
+    c2.publishIntent = True
+    c2.producedReport = r2
+    r2.author = u
+    r2.segment = s
+    r2.ts = 7
+    r2.publishable = True
+    r2.status = RequiresMaintenance
+
+    s.consolidated.lastUpdated = 7
+    s.consolidated.status = RequiresMaintenance
+  }
+}
+
+run Scenario_S4_TwoPublishableReportsLatestWins for
+  exactly 1 RegisteredUser, exactly 1 Trip, exactly 1 PathSegment, exactly 1 ConsolidatedStatus,
+  exactly 2 CandidateIssue, exactly 2 PathSegmentReport, exactly 1 Email,
+  5 Int
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario4.png}
+\caption{\label{fig:alloy_dig4}Scenario 4}
+\end{figure}
+
+\subsection{Scenario S5: No reports means Unknown}
+There are no reports at all.
+Since consolidation only uses publishable reports and there are none, the segment consolidated status remains \texttt{Unknown} and \texttt{lastUpdated} remains $0$ as shown in Fig.~\ref{fig:alloy_dig5}.
+
+\begin{lstlisting}[caption={Scenario S5: baseline (no reports)}]
+pred Scenario_S5_NoReportsMeansUnknown {
+  some s: PathSegment | {
+    no PathSegmentReport
+    s.consolidated.status = Unknown
+    s.consolidated.lastUpdated = 0
+  }
+}
+
+run Scenario_S5_NoReportsMeansUnknown for
+  exactly 1 PathSegment, exactly 1 ConsolidatedStatus,
+  exactly 0 PathSegmentReport, exactly 0 CandidateIssue, exactly 0 Trip,
+  exactly 0 RegisteredUser, exactly 0 Email,
+  5 Int
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario5.png}
+\caption{\label{fig:alloy_dig5}Scenario 5}
+\end{figure}
+
+\subsection{Scenario S6: Same latest time, majority vote wins}
+Three publishable reports exist at the same newest timestamp ($t=10$).
+Two reports say \texttt{RequiresMaintenance} and one says \texttt{Optimal}.
+The consolidated status follows the majority at the latest time, so it becomes \texttt{RequiresMaintenance} with \texttt{lastUpdated=10} as shown in Fig.~\ref{fig:alloy_dig6}.
+
+\begin{lstlisting}[caption={Scenario S6: majority at latest timestamp}]
+pred Scenario_S6_MajorityAtLatestTimestampWins {
+  some u1, u2, u3: RegisteredUser, s: PathSegment, r1, r2, r3: PathSegmentReport | {
+    u1.blocked = False and u2.blocked = False and u3.blocked = False
+
+    r1.author = u1
+    r1.segment = s
+    r1.ts = 10
+    r1.publishable = True
+    r1.status = Optimal
+
+    r2.author = u2
+    r2.segment = s
+    r2.ts = 10
+    r2.publishable = True
+    r2.status = RequiresMaintenance
+
+    r3.author = u3
+    r3.segment = s
+    r3.ts = 10
+    r3.publishable = True
+    r3.status = RequiresMaintenance
+
+    s.consolidated.lastUpdated = 10
+    s.consolidated.status = RequiresMaintenance
+  }
+}
+
+run Scenario_S6_MajorityAtLatestTimestampWins for
+  exactly 3 RegisteredUser, exactly 3 Email,
+  exactly 1 PathSegment, exactly 1 ConsolidatedStatus,
+  exactly 3 PathSegmentReport,
+  exactly 0 CandidateIssue, exactly 0 Trip,
+  5 Int
+\end{lstlisting}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_scenario6.png}
+\caption{\label{fig:alloy_dig6}Scenario 6}
+\end{figure}
+
+When the code is executed for all scenarios, the output is shown in Fig.~\ref{fig:alloy_output}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/alloy_images/alloy_output.png}
+\caption{\label{fig:alloy_output}Alloy Analyzer console output for scenarios S1 to S6}
+\end{figure}

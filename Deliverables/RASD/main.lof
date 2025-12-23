@@ -1,0 +1,28 @@
+\contentsline {figure}{\numberline {1}{\ignorespaces Domain Class Diagram.}}{12}{figure.caption.6}%
+\contentsline {figure}{\numberline {2}{\ignorespaces State Diagram for Trip Recording.}}{14}{figure.caption.7}%
+\contentsline {figure}{\numberline {3}{\ignorespaces State Diagram for Candidate Issue Lifecycle.}}{15}{figure.caption.8}%
+\contentsline {figure}{\numberline {4}{\ignorespaces State Diagram for the Path Segment Consensus Process.}}{16}{figure.caption.9}%
+\contentsline {figure}{\numberline {5}{\ignorespaces Dashboard}}{19}{figure.caption.10}%
+\contentsline {figure}{\numberline {6}{\ignorespaces Trip Recording Screen}}{20}{figure.caption.11}%
+\contentsline {figure}{\numberline {7}{\ignorespaces Trip Details Screen}}{21}{figure.caption.12}%
+\contentsline {figure}{\numberline {8}{\ignorespaces Contribute Path (Manual) Screen}}{22}{figure.caption.13}%
+\contentsline {figure}{\numberline {9}{\ignorespaces Automatic Detection Review}}{23}{figure.caption.14}%
+\contentsline {figure}{\numberline {10}{\ignorespaces Path Search Screen}}{24}{figure.caption.15}%
+\contentsline {figure}{\numberline {11}{\ignorespaces Use Case Diagram for Account Management.}}{27}{figure.caption.22}%
+\contentsline {figure}{\numberline {12}{\ignorespaces Use Case Diagram for Manual path Contribution.}}{28}{figure.caption.23}%
+\contentsline {figure}{\numberline {13}{\ignorespaces Use Case Diagram for Automatci Path Information and Confirmation.}}{28}{figure.caption.24}%
+\contentsline {figure}{\numberline {14}{\ignorespaces Use Case Diagram for Path Search, Scoring and Merging.}}{28}{figure.caption.25}%
+\contentsline {figure}{\numberline {15}{\ignorespaces Sequence Diagram for UC1-User Registration.}}{33}{figure.caption.33}%
+\contentsline {figure}{\numberline {16}{\ignorespaces Sequence Diagram for UC2-User Login.}}{34}{figure.caption.34}%
+\contentsline {figure}{\numberline {17}{\ignorespaces Sequence Diagram for UC3- Record Trip}}{35}{figure.caption.35}%
+\contentsline {figure}{\numberline {18}{\ignorespaces Sequence Diagram for UC4- Add Manual Path Information}}{36}{figure.caption.36}%
+\contentsline {figure}{\numberline {19}{\ignorespaces Sequence Diagram for UC5- Automatic Dectection Confirmation}}{37}{figure.caption.37}%
+\contentsline {figure}{\numberline {20}{\ignorespaces Sequence Diagram for UC6- Search Path Between Origin and Destination}}{38}{figure.caption.38}%
+\contentsline {figure}{\numberline {21}{\ignorespaces Sequence Diagram for UC7- Mergin Path Reports}}{39}{figure.caption.39}%
+\contentsline {figure}{\numberline {22}{\ignorespaces Scenario 1}}{47}{figure.caption.48}%
+\contentsline {figure}{\numberline {23}{\ignorespaces Scenario 2}}{48}{figure.caption.49}%
+\contentsline {figure}{\numberline {24}{\ignorespaces Scenario 3}}{49}{figure.caption.50}%
+\contentsline {figure}{\numberline {25}{\ignorespaces Scenario 4}}{50}{figure.caption.51}%
+\contentsline {figure}{\numberline {26}{\ignorespaces Scenario 5}}{50}{figure.caption.52}%
+\contentsline {figure}{\numberline {27}{\ignorespaces Scenario 6}}{51}{figure.caption.53}%
+\contentsline {figure}{\numberline {28}{\ignorespaces Alloy Analyzer console output for scenarios S1 to S6}}{52}{figure.caption.54}%

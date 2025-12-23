@@ -1,0 +1,165 @@
+\documentclass[11pt, twoside]{article}
+\input{commandsFile}
+\raggedbottom 
+\begin{document}
+
+%====================================================
+% TITLE PAGE
+%====================================================
+\begin{titlepage}
+\begin{center}
+
+% Logo
+\vspace*{1cm}
+\includegraphics[scale=0.5]{Images/PolimiLogo}
+
+\vspace{1cm}
+
+% University name
+{\Large \textbf{POLITECNICO DI MILANO}}\\
+\vspace{0.2cm}
+{\large 1863}
+
+\vspace{1.2cm}
+
+% Degree and course
+{\Large \textbf{Computer Science and Engineering}}\\
+\vspace{0.3cm}
+{\Large \textbf{Software Engineering II}}\\
+\vspace{0.3cm}
+{\large 2025 -- 2026}
+
+\vspace{1.5cm}
+
+% Document type
+{\Huge \textbf{RASD}}\\
+\vspace{0.4cm}
+{\Large \textbf{Requirement Analysis and Specification Document}}\\
+\vspace{0.3cm}
+{\large \textit{Best Bike Paths(BBP)}}
+
+\vfill
+
+% Project and authors
+{\small
+\textbf{By}\\
+\vspace{0.2cm}
+Jayasurya Marasani (11023924)\\
+Arunkumar Murugesan (11051547\\
+Sneharajalakshmi Palanisamy (11132155)
+
+}
+
+\vspace{1cm}
+
+\end{center}
+\end{titlepage}
+
+
+%Define deliverable specific info
+%Replace cell contents where needed
+\begin{table}[h!]
+\begin{tabu} to \textwidth { X[0.3,r,p] X[0.7,l,p] }
+\hline
+
+\textbf{Deliverable:} & RASD\\
+\textbf{Title:} & Requirement Analysis and Specification Document \\
+\textbf{Authors:} & Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy \\
+\textbf{Version:} & 1.0 \\ 
+\textbf{Date:} & 23-December-2025 \\
+\textbf{Download page:} & https://github.com/BBPpolimi/MurugesanPalanisamyMarasani \\
+\textbf{Copyright:} & Copyright © 2025, Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy – All rights reserved \\
+\hline
+\end{tabu}
+\end{table}
+
+
+
+
+\setcounter{page}{2}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\newpage
+\addcontentsline{toc}{section}{Table of Contents}
+\tableofcontents
+\newpage
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Introduction}}}
+\label{sect:introduction}
+\input{Files/introduction}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Overall Description}}}
+\label{sect:overview}
+\input{Files/overview}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Specific Requirements}}}
+\label{sect:requirements}
+\input{Files/requirements}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Formal Analysis Using Alloy}}}
+\label{sect:alloy}
+\input{Files/alloy}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Effort Spent}}}
+\label{sect:effort}
+\input{Files/effort}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\addcontentsline{toc}{section}{References}
+% \bibliographystyle{plain}
+
+% \bibliography{main}
+
+\begin{thebibliography}{99}
+\bibitem{alloy}
+Alloy Analyzer.
+\newblock \textit{Alloy Analyzer Documentation (Analyzer Tooling)}.
+\newblock \url{https://alloy.readthedocs.io/en/latest/tooling/analyzer.html}.
+
+\bibitem{figma}
+Figma, Inc.
+\newblock \textit{Figma: Collaborative Interface Design Tool}.
+\newblock \url{https://www.figma.com}.
+
+
+\bibitem{chatgpt}
+OpenAI.
+\newblock \textit{ChatGPT (used for paraphrasing)}.
+\newblock \url{https://chatgpt.com}.
+
+\bibitem{planttext}
+PlantText.
+\newblock \textit{PlantText: Online Text Editor for Writing and Notes}.
+\newblock \url{https://www.planttext.com}.
+
+\bibitem{overleaf}
+Overleaf.
+\newblock \textit{Overleaf: Online \LaTeX\ Editor}.
+\newblock \url{https://www.overleaf.com/}.
+
+
+\end{thebibliography}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+\end{document}

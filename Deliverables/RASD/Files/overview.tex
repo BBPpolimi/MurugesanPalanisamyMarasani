@@ -1,0 +1,249 @@
+\subsection{Product Perspective}
+BBP is a new stand-alone system that:
+\begin{enumerate}
+    \item Runs as a mobile-first web application and/or native mobile app.
+    \item Uses the device’s GPS, accelerometer and gyroscope to collect data while a user is biking.
+    \item Integrates external map data (for routing and visualization) and an external weather API.
+    \item Maintains a central database of trips, path segments, segment reports and merged path status.
+\end{enumerate}
+
+\subsubsection{Scenarios}
+\textbf{Scenario 1: Comprehensive Trip Recording (Online, Offline and Edge Cases)}\\ 
+\textbf{User A}, a registered user commutes to work. Before starting, they open the BBP app and tap \textit{Start Trip}. The app requests necessary location permissions; if granted, it begins sampling GPS points.
+
+\begin{itemize}
+    \item \textbf{Live Tracking:} As User A rides, the application displays a live map, elapsed time, approximate distance, and current speed.
+    \item \textbf{Handling Signal Loss:} During the ride, User A passes through a tunnel. GPS accuracy drops and location updates pause. The application continues the trip timer but displays a \textit{Poor GPS} warning. When the signal returns, the application resumes sampling, marking the interpolated segment as \textit{low confidence}.
+    \item \textbf{Pausing:} User A stops for coffee and manually pauses the trip. The system records this interval separately to calculate moving speed versus total duration.
+    \item \textbf{Completion:} Upon reaching the destination, User A taps \textit{Stop Trip}. BBP computes final statistics (distance, average and maximum speed, and duration) and saves the trip to the user’s history. If the device is online, weather data for the corresponding time and location is retrieved and appended to the trip log.
+\end{itemize}
+\textbf{Scenario 2: Automated Obstacle Detection and Sensor Management}
+\\
+\textbf{User B} has enabled \textit{Automatic Path Contribution.}
+\begin{itemize}
+    \item \textbf{Data Acquisition: } When they start a trip, BBP begins background sampling of accelerometer and gyroscope data.
+
+    \item \textbf{Detection:} During the ride, the sensors detect repeated vertical spikes (indicating a rough surface) and a strong jolts (indicating a pothole). BBP flags these locations as \textit{candidate obstacles} with a specific confidence score.
+
+    \item \textbf{Permission Revocation:} Midway through the ride, User B decides to revoke sensor permissions for privacy. BBP immediately stops sensor sampling and marks the contribution data as incomplete, though GPS recording continues for their personal log.
+
+
+    \item \textbf{User Confirmation:} After the trip, User B is presented with a review screen of the candidate obstacles. They confirm the true positive (the pothole) and reject a false positive (caused by hopping a curb). Only the confirmed data is uploaded as a publishable contribution.
+
+\end{itemize}
+\vspace{1cm}
+\textbf{Scenario 3: Manual Path Contribution, Publishing and Maintenance}
+\\
+\textbf{User C} is familiar with a specific riverside track.
+\begin{itemize}
+    \item \textbf{Creation:} They access \textit{Contribute Paths} to map a route that is not yet in the system. They draw the track on the map (or select existing segments) and assign a status to each section-marking the majority as \textit{Optimal} and a damaged section as \textit{Requires Maintenance}.
+    \item \textbf{Detailing:} User C places a specific obstacle marker on the damaged section with a description (e.g., \textit{Deep pothole}).
+
+    \item \textbf{Publishing:} They toggle the contribution to "Publishable," allowing the community to see this data.
+
+    \item \textbf{Editing:} Weeks later, after the city repairs the track, User C returns to their previous contribution history, edits the segment status from "Requires Maintenance" to "Optimal," and submits the update. This new report is treated as fresh evidence by the system.
+
+\end{itemize}
+\textbf{Scenario 4: Smart Route Search and Personalization
+}
+\\
+\textbf{User D}  (a guest or registered user) wants to find a safe route to the city park.
+\begin{itemize}
+    \item \textbf{Search \& Scoring:} They enter an origin and destination. BBP queries the database and calculates scores for potential routes based on \textbf{Path Quality} (surface status, obstacles, data freshness) and \textbf{Efficiency} (distance, number of turns).
+    \item \textbf{Preferences:} User D sets a specific preference to \textit{Prioritize Smoothness}, indicating a willingness to cycle up to 20\% longer to avoid rough terrain.
+
+    \item \textbf{Results:} The system presents three options. Route A is short but rough; Route B is longer but \textit{Optimal.} BBP ranks Route B higher based on User D's preferences, displaying a profile for each (e.g., \textit{Route B: +0.12 quality score, -0.05 effectiveness}). User D selects Route B to view the specific map details.
+
+\end{itemize}
+\textbf{Scenario 5: Data Aggregation and Privacy Controls}
+\\
+\textbf{User E}and other community members submit data that the system must evaluate and merge.
+\begin{itemize}
+    \item \textbf{Conflict Resolution:} User E reports a segment as \textit{Requires Maintenance}, while another user reports it as \textit{Optimal}. BBP considers report timestamps, user confirmations, and overall data freshness to resolve the conflict.
+    \item \textbf{Privacy-First Sharing:} User E records a trip for personal statistics but does not want to share their exact commute route. They choose the \textit{Publish Confirmed Obstacles Only} option. BBP extracts the confirmed pothole data and segment status for the community map but discards the full trip polyline (the specific path taken) from the public database to protect User E's privacy.
+
+\end{itemize}
+
+\subsubsection{Domain Class Diagram}
+The Domain Class Diagram as shown in Fig. \ref{fig:domain_class_dig} for the BBP project models the ecosystem of cyclists, their activities, and the physical road infrastructure they navigate. It visually represents how Users interact with the system to record Trips and generate crowd-sourced data about Path Segments and Obstacles.
+\begin{sidewaysfigure}
+\centering
+\includegraphics[width=\textwidth]{Images/domain_class_diagram/domain classs diagram_page-0001.jpg}
+\caption{\label{fig:domain_class_dig}Domain Class Diagram.}
+\end{sidewaysfigure}
+
+\begin{enumerate}
+    \item \textbf{User Management} 
+    \begin{itemize}
+        \item \textbf{User (Abstract Class):} The base entity representing any person interacting with the system, containing shared attributes like name, email, and credentials.
+        \begin{itemize}
+            \item \textbf{RegisteredUser:} An authenticated user who can record trips, contribute reports, manage preferences, and access personal history.
+            \item \textbf{GuestUser}  An unauthenticated user limited to searching for paths without storing history or contributing data.
+            \item \textbf{Administrator:}  An unauthenticated user limited to searching for paths without storing history or contributing data.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Trip \& Data Acquisition}
+    \begin{itemize}
+        \item \textbf{Trip:} Represents a recorded journey, storing aggregate statistics (distance, duration, speed) and linking to the specific data collected during the ride.
+        \item \textbf{RoutingPeference:} Stores a registered user's specific settings for route calculation, such as prioritizing safety or limiting extra distance.
+        \item \textbf{GpsPoint:} A single geographical data point recorded during a trip, containing coordinates, elevation, and timestamp.
+        \item \textbf{SenorSample:} Raw data captured from device sensors (accelerometer, gyroscope) during a trip to detect surface irregularities.
+        \item \textbf{WeatherSnapshot:} A record of environmental conditions (temperature, wind, etc.) fetched for a specific trip's time and location.
+    \end{itemize}
+    \item \textbf{Path \& Routing}
+    \begin{itemize}
+        \item \textbf{RouteRequest:}  Represents a user's query for a path, defining the origin, destination, and the time the request was made.
+
+        \item \textbf{RouteCandidate:} A potential path calculated by the system in response to a request, containing estimated metrics like duration and turn count.
+
+        \item \textbf{RouteSegment:}  An ordered portion of a route candidate that links to a specific physical path segment.
+        \item \textbf{PathScore:} A calculated rating for a specific route candidate, breaking down the quality and effectiveness scores with an explanation.
+
+        \item \textbf{BikePath:} A logical grouping of path segments representing a named track or street (e.g., "Riverside Track").
+
+        \item \textbf{PathSegment:}The fundamental unit of the road network (a specific stretch of physical geometry) that holds the consolidated status.
+
+
+        \item \textbf{PathSegmentOccurence:} Links a recorded Trip to the specific PathSegments it traversed, tracking entry and exit times for that segment.
+
+    \end{itemize} 
+
+    \item \textbf{Reporting \& Consolidation}
+    \begin{itemize}
+        \item \textbf{PathSegmentReport:} A user-submitted report on a specific segment's condition, which acts as input for the system's consolidation logic.
+        \item \textbf{ConsolidatedStatus:} The system-calculated final status of a path segment, derived from aggregating multiple user reports and confidence scores.
+        \item \textbf{CandidateIssue:} A potential problem (like a pothole) detected automatically by sensors, waiting for user review and confirmation.
+        \item \textbf{Obstacle:} A confirmed physical obstruction (e.g., pothole, debris) located on a path segment, created manually or via confirmed candidate issues.
+    \end{itemize}
+    \item \textbf{Enumerations (Value Types)}
+    \begin{itemize}
+        \item \textbf{SegmentStatus:} Defines the condition of a path (e.g., optimal, medium, sufficient, requiresMaintenance).
+        \item \textbf{ReportSource:} Indicates whether a report was created manually or confirmed from automatic detection.
+        \item \textbf{ObstacleType:} Categories of obstacles (e.g., pothole, debris, bump, dangerousCrossing).
+        \item \textbf{CandidateState:} Tracks the lifecycle of an automated detection (e.g., detectedAutomatically, pendingUserConfirmation, confirmed, rejected).
+    \end{itemize}
+\end{enumerate}
+\subsubsection{State Diagrams}
+\textbf{Trip Recording State Diagram} 
+\\
+The diagram as shown in Fig.~\ref{fig:state_dig1}. defines the user and system states during a Trip Recording session. It traces the flow from \textit{Idle} to \textit{Recording} which includes sub-states to handle GPS signal quality (\textit{High Accuracy} vs. \textit{Low Signal}) and \textit{Paused} states. Upon stopping the trip, the system enters a "Processing" composite state to compute statistics and fetch weather data (depending on connectivity) before finally transitioning to "Saved to History".
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{Images/state_diagrams/Trip Recording State diagram.jpg}
+\caption{\label{fig:state_dig1} State Diagram for Trip Recording.}
+\end{figure}
+
+\noindent\textbf{Candidate Issue Lifecycle}
+\\
+The diagram as shown in Fig.~\ref{fig:state_dig2} outlines the workflow for Automated Path Information, specifically tracking a potential obstacle detected by sensors. The process begins with a \textit{Sensor Spike Detected} which remains \textit{Hidden From User} during the \textit{Internal Detection} phase while the ride is ongoing. Once the trip ends, the state shifts to \textit{Awaiting User Action,} requiring the user to Confirm, Edit or Reject the candidate to determine if it becomes \textit{Publishable, Private,} or is \textit{Discarded} entirely.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{Images/state_diagrams/Candidate Issue Lifecycle_page.jpg}
+\caption{\label{fig:state_dig2} State Diagram for Candidate Issue Lifecycle.}
+\end{figure}
+\vspace{1cm}
+
+\noindent\textbf{Path Segment Consenses}
+
+\noindent The diagram as shown in Fig.~\ref{fig:state_dig3} models the lifecycle of a Consolidated Status for a specific road segment. It illustrates how the system transitions a segment from an \textit{Unknown Status} to specific classifications like \textit{Optimal, Medium, or Requires Maintenance} based on incoming user reports. It demonstrates the merging logic where \textit{fresh} positive or negative reports trigger state changes, reflecting the community consensus over time.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{Images/state_diagrams/Path Segment Consenses_page.jpg}
+\caption{\label{fig:state_dig3} State Diagram for the Path Segment Consensus Process.}
+\end{figure}
+
+
+
+\subsection{Product Functions (High Level)}
+The system is designed around the following core functional pillars:
+\begin{enumerate}
+    \item \textbf{User Account \& Session Administration} handles the full lifecycle of user identity. This includes secure registration and authentication (login/logout), encrypted storage of user credentials, and self-service password recovery mechanisms to ensure account security and accessibility.
+
+    \item \textbf{Permission \& Consent Handling} Manages the request and revocation of runtime permissions necessary for core functionality. This specifically governs access to sensitive device capabilities, including fine-grained location services (GPS) and motion sensors (accelerometer/gyroscope), ensuring user consent is explicitly granted.
+
+    \item \textbf{Real-Time Trip Acquisition} Performs active data collection during a ride. This involves continuous GPS sampling to plot routes and optional background sensor sampling to detect surface irregularities. The system computes real-time statistics (speed, duration, distance) and ensures data is persisted locally on the device to prevent loss during connectivity drops.
+
+    \item \textbf{Post-Trip Review \& Management } Provides a comprehensive interface for users to access their personal data. Features include a history list filtered by date, a detailed view of specific trips with map visualizations, and data management options such as deleting records or exporting trip data for external use.
+
+    \item \textbf{Manual Contribution Interface} Enables users to actively map and rate infrastructure. Users can select existing paths or draw new segments on the map, assign specific condition statuses (e.g., \textit{Optimal} vs. \textbf{Damaged}), and drop markers for specific obstacles. This workflow includes capabilities to publish, unpublish, or edit their previous reports.
+
+    \item \textbf{Automated Contribution Workflow} Utilizes sensor data to passively crowdsource road conditions. The system detects candidate issues (anomalies) via motion algorithms, presents them to the user in a review UI for confirmation or rejection, and processes verified data for publication.
+    \item \textbf{Intelligent Route Search \& Scoring} A search engine that calculates optimal biking paths between an origin and destination. It retrieves path data, applies a weighted scoring algorithm (balancing surface quality, obstacles, and distance efficiency), ranks the results, and visualizes the routes with clear explanations for the calculated scores.
+    \item \textbf{Data Aggregation \& Consensus Engine} The backend logic responsible for reconciling conflicting or overlapping user reports. This function periodically recomputes segment statuses by applying logic such as \textit{freshness weighting} (prioritizing recent data), majority consensus, and confidence scoring to derive a single, reliable status for every road segment.
+    \item \textbf{System Moderation \& Safety} Administrative tools designed to maintain platform integrity. This includes the ability to block abusive users, hide or remove erroneous reports, and maintain an audit log of administrative actions.
+\end{enumerate}
+\subsection{User Characteristics}
+\begin{enumerate}
+    \item \textbf{Registered Cyclist}
+    \begin{itemize}
+        \item Has a basic familiarity with smartphones and maps.
+        \item Expects simple interactions like starting a ride, tapping on a map and filling small forms.
+        \item Motivated to log personal activity and contribute to community data.
+    \end{itemize}
+    \item \textbf{Guest User}
+    \begin{itemize}
+        \item May have no account; just wants to see safe paths between two points.
+        \item Needs a very simple UI: origin, destination and path list/map.
+
+    \end{itemize}
+    \item \textbf{System Administrator}
+    \begin{itemize}
+        \item Manages users (e.g., blocking abusive ones), monitors data quality, may adjust merging parameters.
+    \end{itemize}
+
+    \item \textbf{Non-human actors}
+    \begin{itemize}
+        \item Map service (e.g., routing and tiles).
+        \item Weather service (meteorological data provider)
+    \end{itemize}
+
+\end{enumerate}
+
+
+\subsection{Assumptions, Dependencies and Constraints}
+\subsubsection{Regulatory Policies}
+\begin{enumerate}
+    \item BBP processes personal data (location history of trips, user accounts), so it must comply with applicable data protection laws (e.g., GDPR in the EU). Identifiable trip data must not be published without user consent and sensitive data must be encrypted at rest and in transit.
+    \item Map and weather services must be used according to their licenses/terms of service.
+    \item BBP only provides advisory information; it does not replace local traffic regulations or official safety advisories.
+\end{enumerate}
+
+\subsubsection{Domain Assumptions}
+\begin{itemize}
+    \item \textbf{D1:} GPS accuracy is sufficient (e.g., within ~10-20 meters) to associate positions with map segments.
+    \item \textbf{D2:} Device sensors (accelerometer, gyroscope) are calibrated and reliable enough to detect strong pothole-like events.
+    \item \textbf{D3:} Users generally act in good faith and report path status honestly.
+    \item \textbf{D4:}  External map and weather services are available and return correct data.
+    \item \textbf{D5:} User's devices have an active network connection at least intermittently (for trip upload and weather fetching).
+    \item \textbf{D6:} A bike path is defined as in the assignment: dedicated bike track or low-traffic, bike compatible road.
+    \item \textbf{D7:} When multiple users provide conflicting information, a meaningful consolidated view can be derived using time and majority rules.
+
+    \item \textbf{D8:} Users explicitly enable automatic sensor-based data collection before BBP accesses motion sensors for pothole detection.
+
+\end{itemize}
+
+
+
+
+
+
+
+% \begin{sidewaysfigure}
+% \centering
+% \includegraphics[width=\textwidth]{Images/11.png}
+% \caption{\label{fig:metamodel}DICE DPIM metamodel.}
+% \end{sidewaysfigure}
+
+% \begin{figure}
+% \centering
+% \includegraphics[width=\textwidth]{Images/11.png}
+% \caption{\label{fig:metamodel2}DICE DPIM metamodel in portrait form.}
+% \end{figure}
+
+% Here is the command to refer to another element (section, figure, table, ...) in the document: \emph{As discussed in Section~\ref{sect:overview} and as shown in Figure~\ref{fig:metamodel}, ...}. Here is how to introduce a bibliographic citation~\cite{DAM}. Bibliographic references should be included in a \texttt{.bib} file. 
+
+% Table generation is a bit complicated in Latex. You will soon become proficient, but to start you can rely on tools or external services. See for instance this \href{https://www.tablesgenerator.com}{https://www.tablesgenerator.com}. 
