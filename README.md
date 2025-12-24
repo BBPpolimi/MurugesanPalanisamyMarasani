@@ -162,9 +162,7 @@ BBP provides advisory routing information and does not replace official traffic 
 
 This repository currently contains **requirements and design documentation**.  
 Implementation is expected to follow the specifications defined in the RASD.
-
 ---
-
 ## Documentation
 
 - **Requirement Analysis and Specification Document (RASD)**  
