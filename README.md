@@ -1,9 +1,7 @@
 # Best Bike Paths (BBP)
 
 Best Bike Paths (BBP) is a mobile-first application designed to help cyclists discover safer, higher-quality bike routes while enabling the community to collaboratively maintain up-to-date information about bike path conditions. BBP combines personal trip tracking, crowd-sourced path quality reporting, and intelligent route scoring to go beyond traditional shortest-path navigation.
-
 ---
-
 ## Table of Contents
 
 - [Overview](#overview)
