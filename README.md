@@ -1,3 +1,4 @@
 # BBP
 BBP 
-This is just a test
+BBP: Best Bike Path
+BBP is a flutter based mobile first software application
