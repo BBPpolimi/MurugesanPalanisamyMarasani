@@ -60,6 +60,7 @@ ios/Runner/GeneratedPluginRegistrant.*
 # Exceptions to above rules.
 !/android/app/src/main/res/raw/keep.xml
 !/web/favicon.png
+!/Deliverables/
 
 # Linux
 linux/flutter/ephemeral/
