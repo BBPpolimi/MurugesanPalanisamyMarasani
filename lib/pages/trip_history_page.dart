@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/trip_service.dart';
 import 'trip_details_page.dart';
 import '../services/providers.dart';
 

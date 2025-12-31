@@ -34,7 +34,7 @@ class BBPApp extends StatelessWidget {
         ),
       useMaterial3: true,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }

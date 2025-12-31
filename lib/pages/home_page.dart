@@ -5,7 +5,7 @@ import 'record_trip_page.dart';
 import '../services/providers.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
