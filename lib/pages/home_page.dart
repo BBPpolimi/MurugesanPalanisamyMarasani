@@ -4,14 +4,14 @@ import 'record_trip_page.dart';
 
 import '../services/providers.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   int _index = 0;
 
   final _pages = const [
@@ -21,13 +21,29 @@ class _HomePageState extends State<HomePage> {
     Center(child: Text('Search (stub)')),
   ];
 
+  void _onTabTapped(int i) {
+    if (i == 1 || i == 2) {
+      final user = ref.read(authStateProvider).value;
+      if (user?.isGuest == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to access this feature'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+    }
+    setState(() => _index = i);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(child: _pages[_index]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.black,
@@ -60,6 +76,8 @@ class DashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tripService = ref.watch(tripServiceProvider);
+    final authService = ref.watch(authServiceProvider);
+    final user = ref.watch(authStateProvider).value;
     final trips = tripService.trips;
 
     final totalDistanceKm = trips.isEmpty
@@ -73,33 +91,85 @@ class DashboardPage extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Best Bike Paths',
-            style: Theme.of(context).textTheme.headlineMedium,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Best Bike Paths',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    if (user != null && user.displayName != null)
+                      Text(
+                        'Hi, ${user.displayName}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await authService.signOut();
+                },
+                tooltip: 'Sign Out',
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
             'Ride smart. Ride safe.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          
+          if (user?.isGuest == true) ...[
+             Container(
+               margin: const EdgeInsets.only(top: 16),
+               padding: const EdgeInsets.all(12),
+               decoration: BoxDecoration(
+                 color: Colors.amber.shade100,
+                 borderRadius: BorderRadius.circular(8),
+               ),
+               child: const Row(
+                 children: [
+                   Icon(Icons.info_outline, color: Colors.amber),
+                   SizedBox(width: 12),
+                   Expanded(child: Text('You are using the app as a guest. Some features are disabled.')),
+                 ],
+               ),
+             ),
+             const SizedBox(height: 24),
+             Center(
+               child: Text(
+                 'Statistics are not available for guests.',
+                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                   color: Colors.grey,
+                   fontStyle: FontStyle.italic,
+                 ),
+               ),
+             ),
+          ] else ...[
+            const SizedBox(height: 24),
 
-          const SizedBox(height: 24),
-
-          Row(
-            children: [
-              _StatCard(
-                label: 'Trips',
-                value: trips.length.toString(),
-                icon: Icons.directions_bike,
-              ),
-              const SizedBox(width: 12),
-              _StatCard(
-                label: 'Distance',
-                value: '${totalDistanceKm.toStringAsFixed(1)} km',
-                icon: Icons.map,
-              ),
-            ],
-          ),
+            Row(
+              children: [
+                _StatCard(
+                  label: 'Trips',
+                  value: trips.length.toString(),
+                  icon: Icons.directions_bike,
+                ),
+                const SizedBox(width: 12),
+                _StatCard(
+                  label: 'Distance',
+                  value: '${totalDistanceKm.toStringAsFixed(1)} km',
+                  icon: Icons.map,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
