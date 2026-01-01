@@ -12,7 +12,7 @@ class BBPApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Best Bike Paths',
+      title: 'Best Bike Path',
       debugShowCheckedModeBanner: false,
       
       theme: ThemeData(
