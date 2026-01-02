@@ -63,8 +63,9 @@ class AuthService {
     } catch (e) {
       if (kDebugMode) {
         print("Google Sign In Error: $e");
+        print("Stack trace: ${StackTrace.current}");
       }
-      return null;
+      rethrow;
     }
   }
 
