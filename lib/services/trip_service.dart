@@ -178,18 +178,16 @@ class TripService extends ChangeNotifier {
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 5),
     ).listen((pos) {
       _currentAccuracy = pos.accuracy;
-      
-      // Accuracy filter: reject points with accuracy > 20 meters (if available)
-      // Note: pos.accuracy is in meters. Lower is better.
-      if (pos.accuracy > 20.0) {
-        notifyListeners(); // Notify so UI can show poor accuracy
+      // Accuracy filter: reject points with accuracy > 20 meters
+      if (pos.accuracy != null && pos.accuracy > 20.0) {
+        notifyListeners(); // UI shows poor accuracy
         return;
       }
-      
       _points.add(GpsPoint(
         latitude: pos.latitude,
         longitude: pos.longitude,
         elevation: pos.altitude,
+        accuracyMeters: pos.accuracy, // store accuracy
         timestamp: DateTime.now(),
       ));
       notifyListeners();
@@ -198,10 +196,6 @@ class TripService extends ChangeNotifier {
       _state = TripState.error;
       _stopStreams();
       notifyListeners();
-    });
-
-    _accelSub = accelerometerEventStream().listen((event) {
-      // simple accelerometer logging/processing
     });
   }
 
