@@ -70,6 +70,26 @@ class _MapSearchPageState extends ConsumerState<MapSearchPage> {
 
   Future<void> _centerOnUser() async {
     try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled.');
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          debugPrint('Location permission denied');
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permissions are permanently denied, we cannot request permissions.');
+        return;
+      }
+
       final pos = await Geolocator.getCurrentPosition();
       final latLng = LatLng(pos.latitude, pos.longitude);
       _googleMapController?.animateCamera(

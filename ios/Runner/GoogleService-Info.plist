@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>587689362490-11rv8cnnn8efm5lcpm63p4vui3n0t0t8.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.587689362490-11rv8cnnn8efm5lcpm63p4vui3n0t0t8</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>587689362490-hrjlupt1avj7v5gmtf672uhod3jqrqbi.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAPg2av2oRG4BG9J7NfF7p19ihlP8e6TpI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>587689362490</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.mpm.bbpFlutter</string>
+	<key>PROJECT_ID</key>
+	<string>best-bike-path-se2</string>
+	<key>STORAGE_BUCKET</key>
+	<string>best-bike-path-se2.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:587689362490:ios:e7b53684c3ca816aa9a103</string>
+</dict>
+</plist>

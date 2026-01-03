@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
 import 'package:flutter/foundation.dart';
 import '../models/app_user.dart';
 
@@ -69,27 +69,7 @@ class AuthService {
     }
   }
 
-  // Apple Sign In
-  Future<AppUser?> signInWithApple() async {
-    try {
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
-      );
-      
-      final oauthCredential = OAuthProvider("apple.com").credential(
-        idToken: appleCredential.identityToken,
-        accessToken: appleCredential.authorizationCode,
-      );
-      
-      final result = await _auth.signInWithCredential(oauthCredential);
-      return _userFromFirebase(result.user);
-    } catch (e) {
-      if (kDebugMode) {
-        print("Apple Sign In Error: $e");
-      }
-      return null;
-    }
-  }
+
 
   // Guest Login (Anonymous)
   Future<AppUser?> signInAsGuest() async {
