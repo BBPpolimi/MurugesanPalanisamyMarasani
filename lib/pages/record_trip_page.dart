@@ -1,98 +1,151 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../models/trip_state.dart';
 import '../services/providers.dart';
 import '../services/trip_service.dart';
 
-class RecordTripPage extends ConsumerWidget {
+class RecordTripPage extends ConsumerStatefulWidget {
   const RecordTripPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecordTripPage> createState() => _RecordTripPageState();
+}
+
+class _RecordTripPageState extends ConsumerState<RecordTripPage> {
+  GoogleMapController? _mapController;
+  bool _shouldFollowUser = true;
+
+  @override
+  Widget build(BuildContext context) {
     final tripService = ref.watch(tripServiceProvider);
     final state = tripService.state;
+    final points = tripService.points;
+
+    // Convert points to LatLng for Polyline
+    final polylineCoordinates = points
+        .map((p) => LatLng(p.latitude, p.longitude))
+        .toList();
+
+    // Auto-follow logic
+    if (_shouldFollowUser && points.isNotEmpty && _mapController != null) {
+      final lastPoint = points.last;
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(LatLng(lastPoint.latitude, lastPoint.longitude)),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Record Trip')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            /// STATUS CARD
-            _buildStatusCard(context, tripService),
+      body: Column(
+        children: [
+          /// STATUS CARD
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _buildStatusCard(context, tripService),
+          ),
 
-            const SizedBox(height: 16),
-
-            /// ACTION BUTTONS
-            if (state == TripState.idle || state == TripState.error)
-              _buildStartButton(ref, context),
-
-            if (state == TripState.recording || state == TripState.paused) ...[
-               Row(
-                 children: [
-                   Expanded(child: _buildPauseResumeButton(ref, state)),
-                   const SizedBox(width: 8),
-                   Expanded(child: _buildStopButton(ref, context)),
-                 ],
-               ),
-            ],
-
-             if (state == TripState.saved)
-               ElevatedButton(
-                 onPressed: () => ref.read(tripServiceProvider).clear(), // Reset to idle
-                 child: const Text('Start New Trip'),
-               ),
-
-            const SizedBox(height: 24),
-
-            /// POINTS LIST / METRICS
-            if (state == TripState.recording || state == TripState.paused)
-               Padding(
-                 padding: const EdgeInsets.only(bottom: 8.0),
-                 child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'GPS Accuracy: ${tripService.currentAccuracy?.toStringAsFixed(1) ?? "--"} m',
-                    style: Theme.of(context).textTheme.bodySmall,
+          /// MAP AREA (replaces the list)
+          Expanded(
+            child: Stack(
+              children: [
+                GoogleMap(
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(45.4782, 9.2272), // Default
+                    zoom: 15,
                   ),
-                 ),
-               ),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Recorded Points',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            Expanded(
-              child: Card(
-                child: ListView.builder(
-                  itemCount: tripService.points.length,
-                  itemBuilder: (context, index) {
-                    final p = tripService.points[index];
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.location_on, size: 16),
-                      title: Text(
-                        '${p.latitude.toStringAsFixed(5)}, ${p.longitude.toStringAsFixed(5)}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      subtitle: Text(
-                          p.timestamp.toLocal().toString().split('.').first,
-                          style: const TextStyle(fontSize: 10),
-                      ),
-                    );
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: true,
+                  zoomControlsEnabled: false,
+                  polylines: {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      color: Colors.blueAccent,
+                      width: 5,
+                      points: polylineCoordinates,
+                    ),
+                  },
+                  onMapCreated: (controller) => _mapController = controller,
+                  onCameraMoveStarted: () {
+                     // If user interacts, stop auto-following? 
+                     // Simple logic: if user drags, maybe disable follow. 
+                     // For MVP, simple is fine.
                   },
                 ),
-              ),
+                Positioned(
+                   bottom: 16,
+                   left: 16,
+                   child: FloatingActionButton(
+                     mini: true,
+                     backgroundColor: _shouldFollowUser ? Colors.blue : Colors.white,
+                     child: Icon(Icons.navigation, color: _shouldFollowUser ? Colors.white : Colors.black),
+                     onPressed: () {
+                        setState(() {
+                          _shouldFollowUser = !_shouldFollowUser;
+                        });
+                     },
+                   )
+                ),
+                
+                // Metrics Overlay
+                 Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Points: ${points.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Accuracy: ${tripService.currentAccuracy?.toStringAsFixed(1) ?? "--"} m'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          /// ACTION BUTTONS CONTAINER
+          Container(
+             padding: const EdgeInsets.all(16),
+             decoration: const BoxDecoration(
+               color: Colors.white,
+               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+             ),
+             child: Column(
+               mainAxisSize: MainAxisSize.min,
+               children: [
+                 if (state == TripState.idle || state == TripState.error)
+                    _buildStartButton(ref, context),
+      
+                  if (state == TripState.recording || state == TripState.paused) ...[
+                     Row(
+                       children: [
+                         Expanded(child: _buildPauseResumeButton(ref, state)),
+                         const SizedBox(width: 8),
+                         Expanded(child: _buildStopButton(ref, context)),
+                       ],
+                     ),
+                  ],
+      
+                   if (state == TripState.saved)
+                     ElevatedButton(
+                       onPressed: () => ref.read(tripServiceProvider).clear(), // Reset to idle
+                       child: const Text('Start New Trip'),
+                       style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                     ),
+               ],
+             ),
+          ),
+        ],
       ),
     );
   }
@@ -113,7 +166,7 @@ class RecordTripPage extends ConsumerWidget {
       case TripState.recording:
         icon = Icons.fiber_manual_record;
         color = Colors.red;
-        title = 'Recording in progress';
+        title = 'Recording...';
         subtitle = 'GPS is tracking your ride';
         break;
       case TripState.paused:
@@ -145,19 +198,23 @@ class RecordTripPage extends ConsumerWidget {
     }
 
     return Card(
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: double.infinity,
-          child: Column(
-            children: [
-               Icon(icon, size: 40, color: color),
-               const SizedBox(height: 8),
-               Text(title, style: Theme.of(context).textTheme.headlineSmall),
-               const SizedBox(height: 4),
-               Text(subtitle, textAlign: TextAlign.center),
-            ],
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          children: [
+             Icon(icon, size: 32, color: color),
+             const SizedBox(width: 16),
+             Expanded(
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Text(title, style: Theme.of(context).textTheme.titleMedium),
+                   Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                 ],
+               ),
+             ),
+          ],
         ),
       ),
     );
@@ -184,11 +241,11 @@ class RecordTripPage extends ConsumerWidget {
       icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
       label: Text(isPaused ? 'Resume' : 'Pause'),
       onPressed: () {
-        if (isPaused) {
-          ref.read(tripServiceProvider).resumeRecording();
-        } else {
-          ref.read(tripServiceProvider).pauseRecording();
-        }
+         if (isPaused) {
+           ref.read(tripServiceProvider).resumeRecording();
+         } else {
+           ref.read(tripServiceProvider).pauseRecording();
+         }
       },
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(50),

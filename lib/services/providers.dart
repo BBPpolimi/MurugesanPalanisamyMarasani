@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'trip_service.dart';
 import 'auth_service.dart';
+import 'directions_service.dart';
 import '../models/app_user.dart';
 
 final tripServiceProvider =
@@ -12,3 +13,5 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
   final authService = ref.watch(authServiceProvider);
   return authService.authStateChanges;
 });
+
+final directionsServiceProvider = Provider<DirectionsService>((ref) => DirectionsService());

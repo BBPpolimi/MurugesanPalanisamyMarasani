@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'map_search_page.dart';
 import 'record_trip_page.dart';
 
 import '../services/providers.dart';
@@ -18,7 +19,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     DashboardPage(),
     RecordTripPage(),
     Center(child: Text('Contribute (stub)')),
-    Center(child: Text('Search (stub)')),
+    MapSearchPage(),
   ];
 
   void _onTabTapped(int i) {
@@ -61,8 +62,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Contribute',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: Icon(Icons.map),
+            label: 'Map',
           ),
         ],
       ),
