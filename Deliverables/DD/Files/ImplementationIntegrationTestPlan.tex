@@ -1,0 +1,276 @@
+\subsection{Overview and adopted strategies}
+The implementation plan defines the order in which BBP is built, while the integration and test plan defines how BBP is assembled and validated step by step. The two plans must be consistent, because integration testing becomes effective only when it follows the same sequence used to combine components. BBP does not use a big bang integration approach, where all modules are integrated only at the end. Big bang provides late feedback and makes fault localization expensive.
+Instead, BBP follows an incremental and iterative integration process where components are integrated and tested as soon as they are available.
+
+
+The BBP adopts the following approach as our integration strategies:
+\begin{enumerate}
+    \item \textbf{Thread Based Integration:}  BBP integrates the system by delivering complete user visible features, each requiring cooperation among multiple modules. This provides early working functionality and reduces the need for artificial drivers compared to purely structural integration.
+    \item \textbf{Bottom Up Integration inside each thread:} Within each feature, BBP integrates starting from the lower level elements such as data models, repositories, persistence and backend functions, then connects state management and UI. Bottom up integration reduces the need for stubs, but often requires drivers to exercise low level units, which BBP provides through repository and function level test harnesses.
+
+    \item \textbf{Critical Modules First:} BBP prioritizes high risk modules early specifically GPS tracking, sensor sampling and candidate detection feasibility and MapService integration, so feasibility issues are discovered early.
+
+\end{enumerate}
+
+Testing in isolation often requires scaffolding because modules depend on other modules. BBP uses stubs and drivers when needed to simulate missing units during incremental integration.
+
+\subsection{Implementation Plan}
+BBP is divided into features to implement the thread based strategy. The RASD use cases and requirements are the critical components to implement. A feature is intended as a coherent functionality that becomes usable to the user and typically requires integration across several subcomponents.
+
+
+Each feature has a significant outcome and provides a stable base for further development. The following are the identified features and the order of implementation feature-wise. 
+
+\begin{enumerate}
+    \item \textbf{F1 - Sign Up and Sign In (UC1, UC2, R1, R2):} Implementation of  registration and login through Auth, create user profiles in Firestore and enforce blocked user handling at login.
+    \item \textbf{F2 - Trip Recording Core (UC3 partial, R3, R5 computation base):} Implementation of  the live trip tracking loop using GPS, including permission handling, start and stop controls, local buffering of GPS points and real time computation of core statistics while recording.
+    \item \textbf{F3 - Trip Persistence, History and Details (UC3 completion and R4, R5, R6):} Persist completed trips to Firestore, upload traces to Cloud Storage and implement trip list and trip details views. This feature makes recorded trips durable and reviewable.
+    \item \textbf{F4 - Weather Enrichment (UC3 extension, R7):}  Add optional weather enrichment after trip persistence is stable, storing weather snapshots in trip records when the service is reachable.
+    \item \textbf{F5 - Manual Path Contributions (UC4, R8 to R12, R24 partially):} Implement map based segment selection or creation, segment status assignment, obstacle reporting, publishable or private selection and editing or deletion of own contributions.
+    \item \textbf{F6 - Automatic Detection Review (UC5, R13 to R18):} Implement automatic mode settings, sensor sampling during trips, candidate detection, candidate review UI and conversion of confirmed candidates into reports and obstacles.
+    \item \textbf{F7 - Route Search (UC6 part 1, R19, R20):} Implementation of origin and destination input, geocoding and retrieval of candidate routes from MapService. This feature focuses on obtaining feasible route candidates.
+    \item \textbf{F8 - Path Scoring and Visualization (UC6 part 2, R21 to R23):} Implementation of segment mapping, retrieval of consolidated statuses and obstacles, scoring of candidates, ordered results list and map visualization with overlays.
+    \item \textbf{F9 - Report Merging into Consolidated Status (UC7, R24 to R27):} Implement periodic merging with freshness weighting and majority resolution and maintain consolidatedStatuses as the derived read model used for fast scoring.
+    \item \textbf{F10 - Administration and Moderation (R28, R29):} Implement admin operations to block users and hide or remove problematic reports and obstacles, enforced through roles, security rules and backend logic.
+\end{enumerate}
+
+\newpage
+\subsection{Component Integration and Testing}
+
+Integration testing focuses on the interaction between components and the correctness of their interfaces because many failures arise from inconsistent assumptions, misinterpreted parameters and unintended side effects across modules.
+
+BBP integrates by feature threads and tests after each integration step rather than deferring testing to the end. It uses Firebase Emulator Suite for Auth, Firestore, Functions and  Storage to run repeatable integration tests, validate security rules and avoid dependence on a remote environment during continuous development. External services, MapService and Weather service are outside the system boundary. BBP therefore does not re-test their internal correctness, but it validates the integration points through stubs, controlled inputs and  failure mode testing such as timeouts.
+\subsubsection{Integration steps by feature thread}
+\begin{enumerate}
+    \item \textbf{F1 - Sign Up and Sign In:}
+
+        \begin{itemize}
+            \item \textbf{Integrated components:} Auth UI, Firebase Authentication, Firestore user profiles, security rules for profile data.
+            \item \textbf{Integration tests:} register, login, profile creation, blocked user access denial.
+
+        \end{itemize}
+
+        \begin{figure}[H]
+        \centering
+        \includegraphics[width=\textwidth]{Images/testing_images/F1_signup_signin_testing.png}
+        \caption{\label{fig:testing_f1} Integration testing diagram for Feature Thread F1 (Sign Up \& Sign In) }
+        \end{figure}
+\newpage
+        \item \textbf{F2 - Trip Recording Core:}
+        \begin{itemize}
+            \item \textbf{Integrated components:} GPS permission flow, GPS streaming, local buffer, real time statistics computation.
+
+            \item \textbf{Integration tests:} start trip, confirm GPS points are received, confirm stats update, stop trip produces a completed in memory trip object even before persistence.
+            \item \textbf{Drivers:} Simulated GPS streams for deterministic tests, plus at least one real device test for feasibility.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F2_trip_recording_core_testing.png}
+            \caption{\label{fig:testing_f2} Integration testing diagram for Feature Thread F2 (Trip Recording Core) }
+            \end{figure}
+
+        \end{itemize}
+        \newpage
+        \item \textbf{F3 - Trip Persistence, History and Details:}
+            \begin{itemize}
+                \item \textbf{Integrated components:} Firestore trip writes, Storage trace upload, trip list query by uid, trip details rendering.
+
+                \item \textbf{Integration tests:} Stopping a trip creates trips/{tripId} and uploads a trace, trip history displays correct items, opening a trip shows stored stats and trace link.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F3_trip_persistence_history_testing.png}
+            \caption{\label{fig:testing_f3} Integration testing diagram for Feature Thread F3 (Trip Persistence, History and Details) } 
+            \end{figure}            
+        \end{itemize}
+
+        \newpage
+
+        \item \textbf{F4 - Weather Enrichment:}
+            \begin{itemize}
+                \item \textbf{Integrated components:} weather client wrapper and trip update pipeline.
+
+                \item \textbf{Integration tests:} reachable weather provider stores snapshot, unreachable provider results in trip stored without weather, with a clear fallback state.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F4_weather_enrichment_testing.png}
+            \caption{\label{fig:testing_f4} Integration testing diagram for Feature Thread F4 (Weather Enrichment) } 
+            \end{figure}            
+
+            \end{itemize}
+            \newpage
+        \item \textbf{F5 - Manual Path Contributions:}
+            \begin{itemize}
+                \item \textbf{Integrated components:} segment creation or selection, report creation, obstacle creation, publishable or private logic, edit and delete own reports.
+
+                \item \textbf{Integration tests:} create publishable reports and verify guest visibility rules, create private reports and verify only owner access, edit and delete restrictions validated by rules tests.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F5_manual_path_contributions_testing.png}
+            \caption{\label{fig:testing_f5} Integration testing diagram for Feature Thread F5 (Manual Path Contributions) } 
+            \end{figure}            
+
+            \end{itemize}
+
+            \newpage
+
+        \item \textbf{F6 - Automatic Detection Review:}
+            \begin{itemize}
+                \item \textbf{Integrated components:} ensor sampling with GPS tagging, candidate detector, candidate review UI, conversion into reports and obstacles.
+
+
+                \item \textbf{Integration tests:} candidate list produced deterministically using prerecorded sensor traces, confirm creates stored artifacts, reject creates none, edits modify stored artifacts.
+
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F6_auto_detection_review_testing.png}
+            \caption{\label{fig:testing_f6} Integration testing diagram for Feature Thread F6 (Automatic Detection Review) } 
+            \end{figure}            
+
+            \end{itemize}
+            \newpage
+        \item \textbf{F7 - Route Search:}
+            \begin{itemize}
+                \item \textbf{Integrated components:}origin and destination UI, geocoding, candidate route retrieval from MapService.
+
+                \item \textbf{Integration tests:} valid locations return candidates, invalid address fails gracefully, timeouts handled with fallback messages.
+
+                \item \textbf{Stubs:} MapService stub used for deterministic automated tests, replaced by real MapService for system tests.
+
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F7_route_search_testing.png}
+            \caption{\label{fig:testing_F7} Integration testing diagram for Feature Thread F7 (Route Search) }
+            \end{figure}            
+
+            \end{itemize}
+            \newpage
+            
+        \item \textbf{F8 - Path Scoring and Visualization:}
+            \begin{itemize}
+                \item \textbf{Integrated components:}segment mapping, retrieval of consolidatedStatuses and obstacles, scoring logic, sorted list, map overlays.
+
+                \item \textbf{Integration tests:} seeded Firestore dataset produces predictable scores, verify ordering by score, verify overlays match consolidated statuses and obstacles, verify guest sees only publishable and non hidden data.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F8_scoring_visualization_testing.png}
+            \caption{\label{fig:testing_F8} Integration testing diagram for Feature Thread F8 (Path Scoring and Visualization) } 
+            \end{figure}           
+
+            \end{itemize}
+
+            \newpage
+
+        \item \textbf{F9 - Report Merging into Consolidated Status:}
+            \begin{itemize}
+                \item \textbf{Integrated components:} scheduled merge function, freshness weighting, majority resolution, consolidatedStatuses updates.
+
+                \item \textbf{Integration tests:} seed reports with known timestamps and statuses, execute merge manually in emulator, verify consolidated result, verify hidden and private items excluded.
+
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F9_report_merging_testing.png}
+            \caption{\label{fig:testing_F9} Integration testing diagram for Feature Thread F9 (Report Merging into Consolidated Status) } 
+            \end{figure}           
+
+            \end{itemize}
+
+            \newpage
+
+        \item \textbf{F10 - Administration and Moderation:}
+            \begin{itemize}
+                \item \textbf{Integrated components:}  admin restricted UI, admin Cloud Functions, rule enforcement, optional audit logging.
+
+
+                \item \textbf{Integration tests:} only admin can block users, blocked users cannot contribute, admin hide and remove excludes data from consolidated results after merge.
+
+            \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{Images/testing_images/F10_admin_moderation_testing.png}
+            \caption{\label{fig:testing_F10} Integration testing diagram for Feature Thread F10 (Administration and Moderation) } 
+            \end{figure}           
+
+            \end{itemize}
+\end{enumerate}
+\subsection{System Testing}
+System testing validates BBP as a whole, using the RASD use cases as scenarios. The test environment is kept as close as possible to production, especially for GPS, sensors and  external services.
+
+System tests are executed after each major feature thread becomes stable and  repeated as regression tests as the system grows.
+\subsubsection{Functional System tests by use case}
+\begin{enumerate}
+    \item \textbf{UC1 - Registration}
+        \begin{itemize}
+            \item Valid registration creates Auth user and Firestore profile
+            \item Invalid email or password rejected
+            \item Duplicate email rejected
+        \end{itemize}
+        \newpage
+    \item \textbf{UC2 - Login}
+        \begin{itemize}
+            \item Correct credentials allow access
+            \item Wrong credentials rejected
+            \item Blocked user denied after profile check
+        \end{itemize}
+    \item \textbf{UC3 - Record Trip}
+        \begin{itemize}
+            \item Permission denied prevents recording
+            \item GPS unavailable handled safely
+            \item Normal trip produces saved trip and trace when persistence is enabled
+            \item Trip history shows new trip and details
+            \item Weather reachable adds weather snapshot, weather unreachable still stores trip
+        \end{itemize}
+    \item \textbf{UC4 - Manual Path Contribution}
+        \begin{itemize}
+            \item Create segment reports for each status
+            \item Add obstacles and verify correct storage and visualization
+            \item Publishable contributions visible to guests, private contributions visible only to owner
+            \item Edit and delete own contributions, not others’ contributions
+        \end{itemize}
+    \item \textbf{UC5 - Automatic Detection Review}
+        \begin{itemize}
+            \item Candidate detection produces list
+            \item Confirm creates PathSegmentReport and obstacle when applicable
+            \item Reject creates nothing
+            \item Edit modifies stored data before publishing
+        \end{itemize}
+    \item \textbf{UC6 - Search Route}   
+        \begin{itemize}
+            \item Route search returns candidate routes for valid origin and destination
+            \item Invalid address fails geocoding
+            \item MapService timeout handled gracefully
+            \item Scoring returns ordered list by decreasing score
+            \item Selected route shows overlays matching consolidated statuses and obstacles
+        \end{itemize}
+    \item \textbf{UC7 - Merge}
+        \begin{itemize}
+            \item Merge updates consolidatedStatuses after new reports
+            \item Freshness weighting influences result
+            \item Majority rule followed
+            \item Hidden and private reports excluded
+        \end{itemize}
+
+\end{enumerate}
+
+\subsubsection{Non Functional System testing types}
+BBP includes performance, load and stress testing at system level.
+\begin{enumerate}
+    \item Performance testing targets route scoring latency and overlay loading times.
+    \item Load testing targets repeated route searches and repeated reads of consolidated status data.
+    \item Stress testing targets failure and degraded conditions such as network loss or external service failure, ensuring BBP degrades gracefully and recovers.
+\end{enumerate}
+
+\subsection{Security tests and regression policy}
+Security and access control testing is treated as continuous integration work rather than a one time activity:
+\begin{enumerate}
+    \item Guests cannot write any Firestore data
+    \item Users can only modify their own trips and contributions
+    \item Only admins can block users and hide or remove content
+    \item Blocked users cannot submit publishable contributions
+\end{enumerate}
+
+Every defect found during integration or system testing is converted into a regression test, so the same fault does not reappear in the further tests. This supports incremental development and keeps integration stable as new features are added.

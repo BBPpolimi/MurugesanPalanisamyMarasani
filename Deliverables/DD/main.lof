@@ -1,0 +1,28 @@
+\contentsline {figure}{\numberline {1}{\ignorespaces Architectural Overview Diagram}}{10}{figure.caption.6}%
+\contentsline {figure}{\numberline {2}{\ignorespaces Domain Class Diagram.}}{12}{figure.caption.7}%
+\contentsline {figure}{\numberline {3}{\ignorespaces Deployment Diagram}}{13}{figure.caption.8}%
+\contentsline {figure}{\numberline {4}{\ignorespaces User Authentication Sequence Diagram}}{14}{figure.caption.9}%
+\contentsline {figure}{\numberline {5}{\ignorespaces User Session Establishment Sequence Diagram}}{15}{figure.caption.10}%
+\contentsline {figure}{\numberline {6}{\ignorespaces Trip Recording Sequence Diagram}}{16}{figure.caption.11}%
+\contentsline {figure}{\numberline {7}{\ignorespaces Manual Contribution Workflow Sequence Diagram}}{17}{figure.caption.12}%
+\contentsline {figure}{\numberline {8}{\ignorespaces Sensor Assisted Detection Confirmation Sequence Diagram}}{18}{figure.caption.13}%
+\contentsline {figure}{\numberline {9}{\ignorespaces Route Search and Scoring Sequence Diagram}}{19}{figure.caption.14}%
+\contentsline {figure}{\numberline {10}{\ignorespaces Merging and Consolidated Status Update Sequence Diagram}}{20}{figure.caption.15}%
+\contentsline {figure}{\numberline {11}{\ignorespaces User Registration Screen}}{23}{figure.caption.16}%
+\contentsline {figure}{\numberline {12}{\ignorespaces Dashboard Screen}}{24}{figure.caption.17}%
+\contentsline {figure}{\numberline {13}{\ignorespaces Trip Recording Screen}}{25}{figure.caption.18}%
+\contentsline {figure}{\numberline {14}{\ignorespaces Trip History and Details Screen}}{26}{figure.caption.19}%
+\contentsline {figure}{\numberline {15}{\ignorespaces Manual Contribution Screen}}{27}{figure.caption.20}%
+\contentsline {figure}{\numberline {16}{\ignorespaces Automatic Detection Review Screen}}{28}{figure.caption.21}%
+\contentsline {figure}{\numberline {17}{\ignorespaces Route Search and Results Screen}}{29}{figure.caption.22}%
+\contentsline {figure}{\numberline {18}{\ignorespaces Admin Screen}}{30}{figure.caption.23}%
+\contentsline {figure}{\numberline {19}{\ignorespaces Integration testing diagram for Feature Thread F1 (Sign Up \& Sign In) }}{37}{figure.caption.30}%
+\contentsline {figure}{\numberline {20}{\ignorespaces Integration testing diagram for Feature Thread F2 (Trip Recording Core) }}{38}{figure.caption.31}%
+\contentsline {figure}{\numberline {21}{\ignorespaces Integration testing diagram for Feature Thread F3 (Trip Persistence, History and Details) }}{39}{figure.caption.32}%
+\contentsline {figure}{\numberline {22}{\ignorespaces Integration testing diagram for Feature Thread F4 (Weather Enrichment) }}{40}{figure.caption.33}%
+\contentsline {figure}{\numberline {23}{\ignorespaces Integration testing diagram for Feature Thread F5 (Manual Path Contributions) }}{41}{figure.caption.34}%
+\contentsline {figure}{\numberline {24}{\ignorespaces Integration testing diagram for Feature Thread F6 (Automatic Detection Review) }}{42}{figure.caption.35}%
+\contentsline {figure}{\numberline {25}{\ignorespaces Integration testing diagram for Feature Thread F7 (Route Search) }}{43}{figure.caption.36}%
+\contentsline {figure}{\numberline {26}{\ignorespaces Integration testing diagram for Feature Thread F8 (Path Scoring and Visualization) }}{44}{figure.caption.37}%
+\contentsline {figure}{\numberline {27}{\ignorespaces Integration testing diagram for Feature Thread F9 (Report Merging into Consolidated Status) }}{45}{figure.caption.38}%
+\contentsline {figure}{\numberline {28}{\ignorespaces Integration testing diagram for Feature Thread F10 (Administration and Moderation) }}{46}{figure.caption.39}%

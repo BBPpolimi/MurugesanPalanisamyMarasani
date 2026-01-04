@@ -1,0 +1,140 @@
+\subsection{Purpose}
+Cities and suburbs often have multiple bicycle routes from between same origin and destination. But the “best” route depends on more than just distance. Surface quality, potholes, hazardous crossings, temporary construction and exposure to motor traffic all influence safety, comfort and duration. Research also provides structured ways to quantify bike path quality. For example, \cite{valenzuela2023bicycle} evaluates cycling infrastructure using the QualiCiclo index. It scores bicycle paths across four categories: infrastructure, signalization, environment and safety. The method uses an ordinal 0 to 3 scale from insufficient to excellent. BBP's notion of segment status and obstacle based quality follows the same idea of making quality explicit and comparable. It can be combined with effectiveness measures during route rankings. At the same time, cyclists increasingly want an easy way to record trips and review quantified history such as distance, speed, recurring commutes and weekly totals.
+
+\noindent Best Bike Paths (BBP) is a mobile application system that enables users to:
+\begin{enumerate}
+	\item Record bicycle trips and store them in a personal trip log with computed statistics.
+	\item Contribute information about bike paths, including segment condition and obstacles, through manual reports and confirmed automatic detection.
+ 	\item Query and compare routes between two points, ranking candidate paths based on both route effectiveness (e.g., distance, elevation, turns) and path quality indicators derived from consolidated reports.
+	\item Use the system as guest users to obtain a fast and easy route from point A to point B without requiring registration.
+\end{enumerate}
+
+\subsection{Scope}
+BBP is a mobile first application that interacts with the user's device capabilities (GPS, accelerometer, gyroscope and network connectivity) and integrates external services (maps/routing and weather) to support both individual trip logging and community-maintained bike path information.
+
+The system scope includes:
+
+\begin{enumerate}
+	\item \textbf{User management}
+	\begin{itemize}
+		\item User registration and login.
+		\item Role-based access for administrative features.
+	\end{itemize}
+	\item \textbf{Trip recording and personal log}
+	\begin{itemize}
+		\item Real-time trip tracking using GPS.
+		\item Automatic computation and storage of trip statistics (e.g., distance, duration, average speed).
+		\item Trip saving and review through a personal trip history.
+	\end{itemize}
+	\item \textbf{Optional Trip Enrichment}
+	\begin{itemize}
+		\item Retrieval and attachment of weather information to trips when the weather service is reachable.
+	\end{itemize}
+	\item \textbf{Manual Bike Path Contributions}
+	\begin{itemize}
+		\item Manual input of bike path information, including streets/segments, segment condition/status, and obstacles.
+		\item Ability to edit or remove user-submitted reports as allowed by permissions.
+	\end{itemize}
+	\item \textbf{Automatic Aquistion of Bike Path Data}
+	\begin{itemize}
+		\item Collection of GPS traces and sensor events (accelerometer/gyroscope) during trip recording when automatic mode is enabled.
+		\item Detection of candidate issues (e.g., potholes/roughness indicators) based on sensor patterns.
+	\end{itemize}
+	\item \textbf{User Confirmation Workflow}
+	\begin{itemize}
+		\item Presentation of automatically detected candidate issues after a trip.
+		\item User confirmation, rejection, or correction of detected issues before they are stored as publishable path reports.
+	\end{itemize}
+	\item \textbf{Path Search and visualization for all Users}
+	\begin{itemize}
+		\item Route search between origin and destination for guest and registered users.
+		\item Ranking of candidate routes by a path score that combines route effectiveness (e.g., distance/elevation/turns) and path quality (segment status and obstacles).
+		\item Map-based visualization of selected routes with overlays for segment condition and reported obstacles.
+	\end{itemize}
+	\item \textbf{Report merging and consolidated status}
+	\begin{itemize}
+		\item Periodic merging of multiple user's reports into consolidated segment status information, applying freshness and majority/weighted-majority logic.
+	\end{itemize}
+	\item \textbf{Administration and data quality controls}
+	\begin{itemize}
+		\item Administrative ability to block users who repeatedly submit false data.
+		\item Administrative ability to remove or hide problematic reports/obstacles and keep the consolidated data consistent.
+	\end{itemize}
+\end{enumerate}
+
+
+\subsection{Definitions, Acronyms, Abbreviations}
+\subsubsection{Definitions}
+
+\begin{enumerate}
+  \item \textbf{Flutter}:  A cross-platform UI framework used to build native mobile apps from a single codebase (Android and iOS). In BBP it is used to implement UI elements and access to device sensors through plugins. 
+  
+  \item \textbf{Firebase/FlutterFire}: Firebase is Google's backend platform. FlutterFire is the official set of Flutter plugins to use Firebase services. In BBP it provides authentication, database, file storage, server-side logic and (optionally) push notifications.
+
+  
+  \item \textbf{MapService(RoutesAPI)}: An external mapping service providing geocoding (address → coordinates) and routing (candidate routes between two points). In BBP it is used during route search (UC6) to generate candidate routes that the system then scores using internal path-quality data.
+  
+  \item \textbf{Weather Service}: An external API used to retrieve weather conditions for a given location and time. In BBP it enriches recorded trips with contextual information when the service is reachable (UC3).
+  
+  \item \textbf{GPS Location Provider}: A recorded ride by a registered user including GPS track and computed statistics.The device capability that provides geographic coordinates over time. In BBP it enables real-time trip tracking and supports associating sensor events with positions.
+
+\end{enumerate}
+
+\subsubsection{Acronyms}
+\begin{enumerate}
+    \item \textbf{BBP (Best Bike Paths)}: The name of the system/application that records bike trips, collects path quality information and provides ranked route suggestions.
+    \item \textbf{Auth (Authentication):} It is an authentication service provided by Firebase. It manages user identities and provides secure login sessions used to authorize access to data and features.
+\end{enumerate}
+
+\subsubsection{Abbreviations}
+\begin{enumerate}
+	\item \textbf{Firestore:} In BBP it stores users, trips, segment reports, obstacles and consolidated segment statuses. Short for Cloud Firestore, NoSQL document database.
+
+	\item \textbf{Storage:} Stores larger files such as recorded trip traces and optionally photos attached to obstacle reports. Short for Firebase Cloud Storage. 
+
+	\item \textbf{Scheduler:} Short for Cloud Scheduler/Scheduled functions. Periodically triggers the merge process that consolidates multiple PathSegmentReports into a single consolidated status per segment.
+
+\end{enumerate}
+
+\subsection{Revision History}
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|p{9cm}|}
+\hline
+\textbf{Version} & \textbf{Date} & \textbf{Description} \\
+\hline
+1.0 & 07/01/2026 & Full Document of DD. \\
+\hline
+\end{tabular}
+\caption{Document Version History}
+\end{table}
+
+
+\subsection{Reference Documents}
+The assignment for this document and all the information included refer to the following documentation:
+\begin{enumerate}
+    \item The specification for the 2025/26 Requirement Engineering and Design Project for the Software Engineering II course.
+    \item The slides on the webeep page of the Software Engineering II course.
+    \item Sample DD “Students \& Companies”
+
+    
+\end{enumerate}
+
+\subsection{Document Structure}
+This document is organized as follows:
+\begin{enumerate}
+\item \textbf{Introduction:} Presents the purpose and scope of BBP, introduces key definitions and terminology and provides the context needed to understand the rest of the document.
+
+\item \textbf{Architectural Design:} Describes the overall architecture of the system, including the main components of the Flutter application and Firebase backend, their responsibilities, deployment choices and how key workflows (e.g., trip recording, route search, merging) are supported.
+
+\item \textbf{User Interface Design:} Summarizes the main user interfaces and screens of the application, showing how users interact with BBP for trip recording, reporting and route search and how the UI supports the main use cases.
+
+\item \textbf{Requirements Traceability:} Maps each functional requirement defined in the RASD to the corresponding architectural components, data structures and modules, ensuring every requirement is covered by the design.
+
+\item \textbf{Implementation, Integration and Test Plan:} Defines the planned implementation order, integration strategy (including dependencies between modules and services) and the test approach (unit, integration, system and non-functional testing) to validate the system.
+
+\item \textbf{Effort Spent:} Reports the effort distribution among team members and activities, summarizing how work was allocated across design tasks.
+
+\item \textbf{References:} Lists the documents, standards and external resources used to produce this document.
+
+\end{enumerate}
