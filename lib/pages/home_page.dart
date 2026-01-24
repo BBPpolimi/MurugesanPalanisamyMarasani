@@ -4,6 +4,7 @@ import 'map_search_page.dart';
 import 'record_trip_page.dart';
 
 import '../services/providers.dart';
+import '../models/trip.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -76,16 +77,8 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tripService = ref.watch(tripServiceProvider);
     final authService = ref.watch(authServiceProvider);
     final user = ref.watch(authStateProvider).value;
-    final trips = tripService.trips;
-
-    final totalDistanceKm = trips.isEmpty
-        ? 0.0
-        : trips.fold<double>(
-                0, (sum, t) => sum + t.distanceMeters) /
-            1000;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -153,23 +146,43 @@ class DashboardPage extends ConsumerWidget {
                ),
              ),
           ] else ...[
-            const SizedBox(height: 24),
+             const SizedBox(height: 24),
 
-            Row(
-              children: [
-                _StatCard(
-                  label: 'Trips',
-                  value: trips.length.toString(),
-                  icon: Icons.directions_bike,
-                ),
-                const SizedBox(width: 12),
-                _StatCard(
-                  label: 'Distance',
-                  value: '${totalDistanceKm.toStringAsFixed(1)} km',
-                  icon: Icons.map,
-                ),
-              ],
-            ),
+             // Use the stream provider for reactive updates
+             Consumer(
+               builder: (context, ref, child) {
+                 final tripsAsync = ref.watch(tripsStreamProvider);
+                 
+                 return tripsAsync.when(
+                   data: (trips) {
+                     final tripList = trips.cast<Trip>();
+                     final totalDistanceKm = tripList.isEmpty
+                         ? 0.0
+                         : tripList.fold<double>(
+                                 0, (sum, t) => sum + t.distanceMeters) /
+                             1000;
+                             
+                     return Row(
+                       children: [
+                         _StatCard(
+                           label: 'Trips',
+                           value: tripList.length.toString(),
+                           icon: Icons.directions_bike,
+                         ),
+                         const SizedBox(width: 12),
+                         _StatCard(
+                           label: 'Distance',
+                           value: '${totalDistanceKm.toStringAsFixed(1)} km',
+                           icon: Icons.map,
+                         ),
+                       ],
+                     );
+                   },
+                   loading: () => const Center(child: CircularProgressIndicator()),
+                   error: (_, __) => const Text('Could not load stats'),
+                 );
+               },
+             ),
           ],
         ],
       ),

@@ -41,10 +41,19 @@ class TripService extends ChangeNotifier {
   double? _currentAccuracy;
   double? get currentAccuracy => _currentAccuracy;
 
-  final TripRepository _repository = TripRepository();
-  final _uuid = const Uuid();
+  final TripRepository _repository;
+  final Uuid _uuid = const Uuid();
 
-  List<Trip> get trips => _repository.getAllTrips();
+  TripService({TripRepository? repository}) 
+      : _repository = repository ?? TripRepository();
+
+  void initialize(String userId) {
+    _repository.initialize(userId);
+  }
+
+  // Use a Future or Stream in the UI instead of this synchronous getter
+  Future<List<Trip>> get trips => _repository.getAllTrips();
+  Stream<List<Trip>> get tripsStream => _repository.watchTrips();
 
   Future<void> startRecording() async {
     if (_state == TripState.recording || _state == TripState.paused) return;
@@ -147,7 +156,7 @@ class TripService extends ChangeNotifier {
       averageSpeed: avgSpeed,
     );
 
-    _repository.saveTrip(trip);
+    await _repository.saveTrip(trip);
 
     _state = TripState.saved;
     notifyListeners();
@@ -179,7 +188,7 @@ class TripService extends ChangeNotifier {
     ).listen((pos) {
       _currentAccuracy = pos.accuracy;
       // Accuracy filter: reject points with accuracy > 20 meters
-      if (pos.accuracy != null && pos.accuracy > 20.0) {
+      if (pos.accuracy > 20.0) {
         notifyListeners(); // UI shows poor accuracy
         return;
       }

@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../models/trip_state.dart';
 import '../services/providers.dart';
 import '../services/trip_service.dart';
+import '../models/trip_state.dart';
 
 class RecordTripPage extends ConsumerStatefulWidget {
   const RecordTripPage({super.key});
@@ -96,7 +95,7 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withAlpha(230), // approx 0.9 * 255
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
                     ),
