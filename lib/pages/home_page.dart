@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'map_search_page.dart';
 import 'record_trip_page.dart';
+import 'trip_history_page.dart';
+import 'trip_details_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
@@ -162,19 +164,84 @@ class DashboardPage extends ConsumerWidget {
                                  0, (sum, t) => sum + t.distanceMeters) /
                              1000;
                              
-                     return Row(
+                     return Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
                        children: [
-                         _StatCard(
-                           label: 'Trips',
-                           value: tripList.length.toString(),
-                           icon: Icons.directions_bike,
+                         Row(
+                           children: [
+                             _StatCard(
+                               label: 'Trips',
+                               value: tripList.length.toString(),
+                               icon: Icons.directions_bike,
+                               onTap: () {
+                                 Navigator.push(
+                                   context,
+                                   MaterialPageRoute(
+                                     builder: (_) => const TripHistoryPage(),
+                                   ),
+                                 );
+                               },
+                             ),
+                             const SizedBox(width: 12),
+                             _StatCard(
+                               label: 'Distance',
+                               value: '${totalDistanceKm.toStringAsFixed(1)} km',
+                               icon: Icons.map,
+                             ),
+                           ],
                          ),
-                         const SizedBox(width: 12),
-                         _StatCard(
-                           label: 'Distance',
-                           value: '${totalDistanceKm.toStringAsFixed(1)} km',
-                           icon: Icons.map,
+                         const SizedBox(height: 24),
+                         Row(
+                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                           children: [
+                             Text(
+                               'Recent Trips',
+                               style: Theme.of(context).textTheme.titleLarge,
+                             ),
+                             TextButton(
+                               onPressed: () {
+                                 Navigator.push(
+                                   context,
+                                   MaterialPageRoute(
+                                     builder: (_) => const TripHistoryPage(),
+                                   ),
+                                 );
+                               },
+                               child: const Text('View All'),
+                             ),
+                           ],
                          ),
+                         const SizedBox(height: 8),
+                         if (tripList.isEmpty)
+                           const Padding(
+                             padding: EdgeInsets.symmetric(vertical: 16.0),
+                             child: Text('No trips recorded yet. Start riding!'),
+                           )
+                         else
+                           ...tripList.take(3).map((trip) {
+                             return Card(
+                               margin: const EdgeInsets.symmetric(vertical: 4),
+                               child: ListTile(
+                                 leading: const CircleAvatar(
+                                   backgroundColor: Colors.green,
+                                   child: Icon(Icons.directions_bike, color: Colors.white, size: 20),
+                                 ),
+                                 title: Text(trip.startTime.toString().split('.')[0]),
+                                 subtitle: Text(
+                                   '${(trip.distanceMeters / 1000).toStringAsFixed(2)} km - ${trip.duration.inMinutes} min',
+                                 ),
+                                 trailing: const Icon(Icons.chevron_right),
+                                 onTap: () {
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                       builder: (_) => TripDetailsPage(trip: trip),
+                                     ),
+                                   );
+                                 },
+                               ),
+                             );
+                           }),
                        ],
                      );
                    },
@@ -195,28 +262,35 @@ class _StatCard extends StatelessWidget {
   final String value;
   final IconData icon;
 
+  final VoidCallback? onTap;
+
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Icon(icon, size: 32, color: Colors.green),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              Text(label),
-            ],
+        clipBehavior: Clip.hardEdge,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Icon(icon, size: 32, color: Colors.green),
+                const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                Text(label),
+              ],
+            ),
           ),
         ),
       ),
