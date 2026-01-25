@@ -4,6 +4,7 @@ import 'map_search_page.dart';
 import 'record_trip_page.dart';
 import 'trip_history_page.dart';
 import 'trip_details_page.dart';
+import 'contribute_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
@@ -21,7 +22,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _pages = const [
     DashboardPage(),
     RecordTripPage(),
-    Center(child: Text('Contribute (stub)')),
+    ContributePage(),
     MapSearchPage(),
   ];
 

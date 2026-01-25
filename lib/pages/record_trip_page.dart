@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/providers.dart';
 import '../services/trip_service.dart';
 import '../models/trip_state.dart';
+import 'review_issues_page.dart';
 
 class RecordTripPage extends ConsumerStatefulWidget {
   const RecordTripPage({super.key});
@@ -22,6 +23,7 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
     final tripService = ref.watch(tripServiceProvider);
     final state = tripService.state;
     final points = tripService.points;
+    final candidates = tripService.candidates;
 
     // Convert points to LatLng for Polyline
     final polylineCoordinates = points
@@ -45,6 +47,30 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: _buildStatusCard(context, tripService),
           ),
+          
+          // Auto-detection Toggle (only editable when idle)
+          if (state == TripState.idle)
+            SwitchListTile(
+              title: const Text('Auto-detect Road Issues'),
+              subtitle: const Text('Uses sensors to find potholes automatically'),
+              value: tripService.isAutoDetectionEnabled,
+              onChanged: (val) => tripService.toggleAutoDetection(val),
+              activeColor: Colors.green,
+            ),
+            
+          if (state == TripState.recording && tripService.isAutoDetectionEnabled)
+             Container(
+               color: Colors.amber.shade100,
+               padding: const EdgeInsets.all(8),
+               child: Row(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   const Icon(Icons.warning, color: Colors.orange),
+                   const SizedBox(width: 8),
+                   Text('${candidates.length} potential issues detected'),
+                 ],
+               ),
+             ),
 
           /// MAP AREA (replaces the list)
           Expanded(
@@ -66,11 +92,15 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                       points: polylineCoordinates,
                     ),
                   },
+                  markers: candidates.map((c) => Marker(
+                    markerId: MarkerId(c.id),
+                    position: LatLng(c.lat, c.lng),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                    infoWindow: const InfoWindow(title: 'Potential Issue'),
+                  )).toSet(),
                   onMapCreated: (controller) => _mapController = controller,
                   onCameraMoveStarted: () {
-                     // If user interacts, stop auto-following? 
-                     // Simple logic: if user drags, maybe disable follow. 
-                     // For MVP, simple is fine.
+                     // Optionally disable auto follow
                   },
                 ),
                 Positioned(
@@ -123,7 +153,7 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                mainAxisSize: MainAxisSize.min,
                children: [
                  if (state == TripState.idle || state == TripState.error)
-                    _buildStartButton(ref, context),
+                    _buildStartButton(ref, context, tripService),
       
                   if (state == TripState.recording || state == TripState.paused) ...[
                      Row(
@@ -136,10 +166,33 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                   ],
       
                    if (state == TripState.saved)
-                     ElevatedButton(
-                       onPressed: () => ref.read(tripServiceProvider).clear(), // Reset to idle
-                       child: const Text('Start New Trip'),
-                       style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                     Column(
+                       children: [
+                         if (candidates.isNotEmpty)
+                           Padding(
+                             padding: const EdgeInsets.only(bottom: 8.0),
+                             child: ElevatedButton.icon(
+                               onPressed: () {
+                                 Navigator.push(
+                                   context, 
+                                   MaterialPageRoute(builder: (_) => const ReviewIssuesPage())
+                                 );
+                               }, 
+                               icon: const Icon(Icons.rate_review), 
+                               label: Text('Review ${candidates.length} Issues'),
+                               style: ElevatedButton.styleFrom(
+                                 backgroundColor: Colors.orange,
+                                 foregroundColor: Colors.white, 
+                                 minimumSize: const Size.fromHeight(50)
+                               ),
+                             ),
+                           ),
+                         ElevatedButton(
+                           onPressed: () => ref.read(tripServiceProvider).clear(), // Reset to idle
+                           child: const Text('Start New Trip'),
+                           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                         ),
+                       ],
                      ),
                ],
              ),
@@ -219,13 +272,17 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
     );
   }
 
-  Widget _buildStartButton(WidgetRef ref, BuildContext context) {
+  Widget _buildStartButton(WidgetRef ref, BuildContext context, TripService tripService) {
     return ElevatedButton.icon(
-      icon: const Icon(Icons.play_arrow),
-      label: const Text('Start Trip'),
-      onPressed: () async {
-        await ref.read(tripServiceProvider).startRecording();
-      },
+      icon: tripService.isInitializing 
+          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : const Icon(Icons.play_arrow),
+      label: Text(tripService.isInitializing ? 'Starting...' : 'Start Trip'),
+      onPressed: tripService.isInitializing 
+          ? null 
+          : () async {
+              await ref.read(tripServiceProvider).startRecording();
+            },
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(50),
         backgroundColor: Colors.green,
