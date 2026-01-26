@@ -56,6 +56,11 @@ class ContributeService {
     if (_userId == null) return;
     await _firestore.collection('bike_paths').doc(pathId).delete();
   }
+  
+  Future<void> renameBikePath(String pathId, String newName) async {
+    if (_userId == null) return;
+    await _firestore.collection('bike_paths').doc(pathId).update({'name': newName});
+  }
 
   // --- Path Quality Reports ---
 

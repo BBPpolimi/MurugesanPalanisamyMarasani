@@ -8,6 +8,7 @@ import 'contribute_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
+import '../models/bike_path.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -85,178 +86,291 @@ class DashboardPage extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Best Bike Paths',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    if (user != null && user.displayName != null)
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Hi, ${user.displayName}',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        'Best Bike Paths',
+                        style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                  ],
+                      if (user != null && user.displayName != null)
+                        Text(
+                          'Hi, ${user.displayName}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () async {
-                  await authService.signOut();
-                },
-                tooltip: 'Sign Out',
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Ride smart. Ride safe.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          
-          if (user?.isGuest == true) ...[
-             Container(
-               margin: const EdgeInsets.only(top: 16),
-               padding: const EdgeInsets.all(12),
-               decoration: BoxDecoration(
-                 color: Colors.amber.shade100,
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               child: const Row(
-                 children: [
-                   Icon(Icons.info_outline, color: Colors.amber),
-                   SizedBox(width: 12),
-                   Expanded(child: Text('You are using the app as a guest. Some features are disabled.')),
-                 ],
-               ),
-             ),
-             const SizedBox(height: 24),
-             Center(
-               child: Text(
-                 'Statistics are not available for guests.',
-                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                   color: Colors.grey,
-                   fontStyle: FontStyle.italic,
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () async {
+                    await authService.signOut();
+                  },
+                  tooltip: 'Sign Out',
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Ride smart. Ride safe.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            
+            if (user?.isGuest == true) ...[
+               Container(
+                 margin: const EdgeInsets.only(top: 16),
+                 padding: const EdgeInsets.all(12),
+                 decoration: BoxDecoration(
+                   color: Colors.amber.shade100,
+                   borderRadius: BorderRadius.circular(8),
+                 ),
+                 child: const Row(
+                   children: [
+                     Icon(Icons.info_outline, color: Colors.amber),
+                     SizedBox(width: 12),
+                     Expanded(child: Text('You are using the app as a guest. Some features are disabled.')),
+                   ],
                  ),
                ),
-             ),
-          ] else ...[
-             const SizedBox(height: 24),
+               const SizedBox(height: 24),
+               Center(
+                 child: Text(
+                   'Statistics are not available for guests.',
+                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                     color: Colors.grey,
+                     fontStyle: FontStyle.italic,
+                   ),
+                 ),
+               ),
+            ] else ...[
+               const SizedBox(height: 24),
 
-             // Use the stream provider for reactive updates
-             Consumer(
-               builder: (context, ref, child) {
-                 final tripsAsync = ref.watch(tripsStreamProvider);
-                 
-                 return tripsAsync.when(
-                   data: (trips) {
-                     final tripList = trips.cast<Trip>();
-                     final totalDistanceKm = tripList.isEmpty
-                         ? 0.0
-                         : tripList.fold<double>(
-                                 0, (sum, t) => sum + t.distanceMeters) /
-                             1000;
-                             
-                     return Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
-                       children: [
-                         Row(
-                           children: [
-                             _StatCard(
-                               label: 'Trips',
-                               value: tripList.length.toString(),
-                               icon: Icons.directions_bike,
-                               onTap: () {
-                                 Navigator.push(
-                                   context,
-                                   MaterialPageRoute(
-                                     builder: (_) => const TripHistoryPage(),
-                                   ),
-                                 );
-                               },
-                             ),
-                             const SizedBox(width: 12),
-                             _StatCard(
-                               label: 'Distance',
-                               value: '${totalDistanceKm.toStringAsFixed(1)} km',
-                               icon: Icons.map,
-                             ),
-                           ],
-                         ),
-                         const SizedBox(height: 24),
-                         Row(
-                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                           children: [
-                             Text(
-                               'Recent Trips',
-                               style: Theme.of(context).textTheme.titleLarge,
-                             ),
-                             TextButton(
-                               onPressed: () {
-                                 Navigator.push(
-                                   context,
-                                   MaterialPageRoute(
-                                     builder: (_) => const TripHistoryPage(),
-                                   ),
-                                 );
-                               },
-                               child: const Text('View All'),
-                             ),
-                           ],
-                         ),
-                         const SizedBox(height: 8),
-                         if (tripList.isEmpty)
-                           const Padding(
-                             padding: EdgeInsets.symmetric(vertical: 16.0),
-                             child: Text('No trips recorded yet. Start riding!'),
-                           )
-                         else
-                           ...tripList.take(3).map((trip) {
-                             return Card(
-                               margin: const EdgeInsets.symmetric(vertical: 4),
-                               child: ListTile(
-                                 leading: const CircleAvatar(
-                                   backgroundColor: Colors.green,
-                                   child: Icon(Icons.directions_bike, color: Colors.white, size: 20),
-                                 ),
-                                 title: Text(trip.startTime.toString().split('.')[0]),
-                                 subtitle: Text(
-                                   '${(trip.distanceMeters / 1000).toStringAsFixed(2)} km - ${trip.duration.inMinutes} min',
-                                 ),
-                                 trailing: const Icon(Icons.chevron_right),
+               // Use the stream provider for reactive updates
+               Consumer(
+                 builder: (context, ref, child) {
+                   final tripsAsync = ref.watch(tripsStreamProvider);
+                   
+                   return tripsAsync.when(
+                     data: (trips) {
+                       final totalDistanceKm = trips.isEmpty
+                           ? 0.0
+                           : trips.fold<double>(
+                                   0, (sum, t) {
+                                     if (t is Trip) return sum + t.distanceMeters;
+                                     if (t is BikePath) return sum + t.distanceMeters;
+                                     return sum;
+                                   }) /
+                               1000;
+                               
+                       return Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Row(
+                             children: [
+                               _StatCard(
+                                 label: 'Total Activities',
+                                 value: trips.length.toString(),
+                                 icon: Icons.directions_bike,
                                  onTap: () {
                                    Navigator.push(
                                      context,
                                      MaterialPageRoute(
-                                       builder: (_) => TripDetailsPage(trip: trip),
+                                       builder: (_) => const TripHistoryPage(),
                                      ),
                                    );
                                  },
                                ),
-                             );
-                           }),
-                       ],
-                     );
-                   },
-                   loading: () => const Center(child: CircularProgressIndicator()),
-                   error: (_, __) => const Text('Could not load stats'),
-                 );
-               },
-             ),
+                               const SizedBox(width: 12),
+                               _StatCard(
+                                 label: 'Distance',
+                                 value: '${totalDistanceKm.toStringAsFixed(1)} km',
+                                 icon: Icons.map,
+                                ),
+                             ],
+                           ),
+                           const SizedBox(height: 24),
+                           Row(
+                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                             children: [
+                               Text(
+                                 'Recent Activities',
+                                 style: Theme.of(context).textTheme.titleLarge,
+                               ),
+                               TextButton(
+                                 onPressed: () {
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                       builder: (_) => const TripHistoryPage(), // Or separate history
+                                     ),
+                                   );
+                                 },
+                                 child: const Text('View All'),
+                               ),
+                             ],
+                           ),
+                           const SizedBox(height: 8),
+                           if (trips.isEmpty)
+                             const Padding(
+                               padding: EdgeInsets.symmetric(vertical: 16.0),
+                               child: Text('No trips recorded yet. Start riding!'),
+                             )
+                           else
+                             ...trips.take(3).map((item) {
+                               String title = '';
+                               String subtitle = '';
+                               String id = '';
+                               bool isTrip = false;
+                               
+                               if (item is Trip) {
+                                 title = item.name ?? item.startTime.toString().split('.')[0];
+                                 subtitle = '${(item.distanceMeters / 1000).toStringAsFixed(2)} km - ${item.duration.inMinutes} min';
+                                 id = item.id;
+                                 isTrip = true;
+                               } else if (item is BikePath) {
+                                  title = item.name ?? 'Manual Path';
+                                  subtitle = '${(item.distanceMeters / 1000).toStringAsFixed(2)} km';
+                                  id = item.id;
+                                  isTrip = false;
+                               } else {
+                                  title = 'Unknown Activity';
+                               }
+
+                               return Card(
+                                 margin: const EdgeInsets.symmetric(vertical: 4),
+                                 child: ListTile(
+                                   leading: CircleAvatar(
+                                     backgroundColor: isTrip ? Colors.green : Colors.blue,
+                                     child: Icon(isTrip ? Icons.directions_bike : Icons.edit_road, color: Colors.white, size: 20),
+                                   ),
+                                   title: Text(title),
+                                   subtitle: Text(subtitle),
+                                   trailing: Row(
+                                     mainAxisSize: MainAxisSize.min,
+                                     children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, size: 20),
+                                          onPressed: () => _showRenameDialog(context, ref, item),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                          onPressed: () => _confirmDelete(context, ref, id, isTrip),
+                                        ),
+                                        const Icon(Icons.chevron_right),
+                                     ],
+                                   ),
+                                   onTap: () {
+                                      if (isTrip && item is Trip) {
+                                         Navigator.push(
+                                           context,
+                                           MaterialPageRoute(
+                                             builder: (_) => TripDetailsPage(trip: item),
+                                           ),
+                                         );
+                                      } else {
+                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manual Path details not implemented yet.')));
+                                      }
+                                   },
+                                 ),
+                               );
+                             }),
+                         ],
+                       );
+                     },
+                     loading: () => const Center(child: CircularProgressIndicator()),
+                     error: (_, __) => const Text('Could not load stats'),
+                   );
+                 },
+               ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
-}
+  
+  Future<void> _showRenameDialog(BuildContext context, WidgetRef ref, dynamic item) async {
+    // Check type
+    String currentName = '';
+    if (item is Trip) currentName = item.name ?? '';
+    if (item is BikePath) currentName = item.name ?? '';
+
+    final nameController = TextEditingController(text: currentName);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Activity'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            hintText: 'Enter new name',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, nameController.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName.isNotEmpty) {
+       if (item is Trip) {
+          await ref.read(tripServiceProvider).renameTrip(item, newName);
+       } else if (item is BikePath) {
+          await ref.read(contributeServiceProvider).renameBikePath(item.id, newName);
+          ref.refresh(myBikePathsFutureProvider);
+       }
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, String id, bool isTrip) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Activity'),
+        content: const Text('Are you sure you want to delete this activity? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (isTrip) {
+        await ref.read(tripServiceProvider).deleteTrip(id);
+      } else {
+        await ref.read(contributeServiceProvider).deleteBikePath(id);
+        // Force refresh of the combined provider by refreshing the bike paths future
+        ref.refresh(myBikePathsFutureProvider);
+      }
+    }
+  }
+} // End of DashboardPage
 
 class _StatCard extends StatelessWidget {
   final String label;

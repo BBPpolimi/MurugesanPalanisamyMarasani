@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DirectionsService {
-  static const String _googleApiKey = 'AIzaSyAPg2av2oRG4BG9J7NfF7p19ihlP8e6TpI'; // Using the key found in other files
+  static const String _googleApiKey = 'AIzaSyB0JGW9K_M69OPlEkUb4bjImj3ogpjJxNM'; // Using the new working API Key
   static const String _baseUrl = 'https://maps.googleapis.com/maps/api/directions/json';
 
   final Dio _dio;

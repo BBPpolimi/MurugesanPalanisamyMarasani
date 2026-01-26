@@ -48,17 +48,49 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
             child: _buildStatusCard(context, tripService),
           ),
           
-          // Auto-detection Toggle (only editable when idle)
-          if (state == TripState.idle)
+          // Auto-detection Toggle (visible when idle or autoMonitoring)
+          if (state == TripState.idle || state == TripState.autoMonitoring)
             SwitchListTile(
-              title: const Text('Auto-detect Road Issues'),
-              subtitle: const Text('Uses sensors to find potholes automatically'),
+              title: const Text('Auto-detect Biking'),
+              subtitle: Text(state == TripState.autoMonitoring 
+                ? 'Monitoring speed... (${(tripService.currentSpeed * 3.6).toStringAsFixed(1)} km/h)'
+                : 'Auto-starts recording when biking detected'),
               value: tripService.isAutoDetectionEnabled,
               onChanged: (val) => tripService.toggleAutoDetection(val),
               activeColor: Colors.green,
             ),
+           
+          // Monitoring status indicator
+          if (state == TripState.autoMonitoring)
+            Container(
+              color: Colors.blue.shade100,
+              padding: const EdgeInsets.all(12),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  SizedBox(width: 8),
+                  Text('Waiting for biking to start...'),
+                ],
+              ),
+            ),
             
-          if (state == TripState.recording && tripService.isAutoDetectionEnabled)
+          // Recording indicator with Auto badge
+          if (state == TripState.recording && tripService.isAutoDetectedTrip)
+            Container(
+              color: Colors.green.shade100,
+              padding: const EdgeInsets.all(8),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.auto_awesome, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Auto-detected ride in progress'),
+                ],
+              ),
+            ),
+            
+          if (state == TripState.recording)
              Container(
                color: Colors.amber.shade100,
                padding: const EdgeInsets.all(8),
@@ -152,7 +184,8 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
              child: Column(
                mainAxisSize: MainAxisSize.min,
                children: [
-                 if (state == TripState.idle || state == TripState.error)
+                 if ((state == TripState.idle || state == TripState.error || state == TripState.autoMonitoring) 
+                     && !tripService.isAutoDetectionEnabled)
                     _buildStartButton(ref, context, tripService),
       
                   if (state == TripState.recording || state == TripState.paused) ...[
@@ -215,10 +248,16 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
         title = 'Ready to start';
         subtitle = 'Press start when you begin cycling';
         break;
+      case TripState.autoMonitoring:
+        icon = Icons.radar;
+        color = Colors.blue;
+        title = 'Auto-detection Active';
+        subtitle = 'Will start recording when biking is detected';
+        break;
       case TripState.recording:
         icon = Icons.fiber_manual_record;
         color = Colors.red;
-        title = 'Recording...';
+        title = tripService.isAutoDetectedTrip ? 'Recording (Auto)' : 'Recording...';
         subtitle = 'GPS is tracking your ride';
         break;
       case TripState.paused:
@@ -314,7 +353,44 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
       icon: const Icon(Icons.stop),
       label: const Text('Stop Trip'),
       onPressed: () async {
-        await ref.read(tripServiceProvider).stopRecording();
+        // Prompt for trip name
+        final nameController = TextEditingController();
+        final shouldStop = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Save Trip'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Do you want to stop recording?'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Trip Name (Optional)',
+                    hintText: 'e.g., Morning Commute',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Stop & Save'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldStop == true) {
+           final name = nameController.text.trim().isEmpty ? null : nameController.text.trim();
+           await ref.read(tripServiceProvider).stopRecording(tripName: name);
+        }
       },
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(50),

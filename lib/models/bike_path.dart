@@ -8,6 +8,7 @@ class BikePath {
   final List<StreetSegment> segments;
   final PathRateStatus status;
   final bool publishable;
+  final String? name; // Added name field
   final double distanceMeters;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -18,6 +19,7 @@ class BikePath {
     required this.segments,
     required this.status,
     required this.publishable,
+    this.name,
     this.distanceMeters = 0.0,
     required this.createdAt,
     required this.updatedAt,
@@ -30,6 +32,7 @@ class BikePath {
       'segments': segments.map((s) => s.toMap()).toList(),
       'status': status.name,
       'publishable': publishable,
+      'name': name,
       'distanceMeters': distanceMeters,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -49,6 +52,7 @@ class BikePath {
         orElse: () => PathRateStatus.medium,
       ),
       publishable: map['publishable'] ?? false,
+      name: map['name'],
       distanceMeters: (map['distanceMeters'] as num?)?.toDouble() ?? 0.0,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
