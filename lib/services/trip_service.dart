@@ -20,13 +20,16 @@ class TripSummary {
   final Duration duration;
   final double averageSpeed;
 
-  TripSummary({required this.distanceMeters, required this.duration, required this.averageSpeed});
+  TripSummary(
+      {required this.distanceMeters,
+      required this.duration,
+      required this.averageSpeed});
 }
 
 class TripService extends ChangeNotifier {
   TripState _state = TripState.idle;
   TripState get state => _state;
-  
+
   bool _isInitializing = false;
   bool get isInitializing => _isInitializing;
 
@@ -36,10 +39,10 @@ class TripService extends ChangeNotifier {
   // Auto-detection fields
   bool _isAutoDetectionEnabled = false;
   bool get isAutoDetectionEnabled => _isAutoDetectionEnabled;
-  
+
   bool _isAutoDetectedTrip = false;
   bool get isAutoDetectedTrip => _isAutoDetectedTrip;
-  
+
   final List<CandidateIssue> _candidates = [];
   List<CandidateIssue> get candidates => List.unmodifiable(_candidates);
 
@@ -50,7 +53,7 @@ class TripService extends ChangeNotifier {
   DateTime? _startTime;
   Duration _pausedDuration = Duration.zero;
   DateTime? _pauseStartTime;
-  
+
   // Current trip ID for linking candidates
   String? _currentTripId;
   String? get currentTripId => _currentTripId;
@@ -62,55 +65,55 @@ class TripService extends ChangeNotifier {
 
   double? _currentAccuracy;
   double? get currentAccuracy => _currentAccuracy;
-  
+
   double _currentSpeed = 0.0;
   double get currentSpeed => _currentSpeed;
 
   final TripRepository _repository;
   final Uuid _uuid = const Uuid();
   final WeatherService _weatherService = WeatherService();
-  
+
   // Biking detector for auto-start/stop
   BikingDetectorService? _bikingDetector;
 
   // Debounce for anomaly detection
   DateTime? _lastAnomalyTime;
-  
+
   // Latest gyroscope reading for sensor fusion
   List<double> _lastGyroReading = [0, 0, 0];
 
   // User ID for trip ownership
   String? _userId;
 
-  TripService({TripRepository? repository}) 
+  TripService({TripRepository? repository})
       : _repository = repository ?? TripRepository();
 
   void initialize(String userId) {
     _userId = userId;
     _repository.initialize(userId);
   }
-  
+
   /// Enable/disable auto-detection mode.
   /// When enabled, monitors GPS speed and auto-starts/stops recording.
   Future<void> toggleAutoDetection(bool enabled) async {
     _isAutoDetectionEnabled = enabled;
-    
+
     if (enabled) {
       await _startAutoMonitoring();
     } else {
       _stopAutoMonitoring();
     }
-    
+
     notifyListeners();
   }
-  
+
   Future<void> _startAutoMonitoring() async {
     if (_state != TripState.idle) return;
-    
+
     _bikingDetector = BikingDetectorService();
     _bikingDetector!.onBikingStarted = _onBikingDetected;
     _bikingDetector!.onBikingStopped = _onBikingStopped;
-    
+
     try {
       await _bikingDetector!.startMonitoring();
       _state = TripState.autoMonitoring;
@@ -121,7 +124,7 @@ class TripService extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   void _stopAutoMonitoring() {
     _bikingDetector?.stopMonitoring();
     _bikingDetector = null;
@@ -130,13 +133,13 @@ class TripService extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   void _onBikingDetected() {
     // Auto-start recording when biking is detected
     _isAutoDetectedTrip = true;
     startRecording();
   }
-  
+
   void _onBikingStopped() {
     // Auto-stop recording when biking stops
     if (_state == TripState.recording || _state == TripState.paused) {
@@ -148,12 +151,14 @@ class TripService extends ChangeNotifier {
   Stream<List<Trip>> get tripsStream => _repository.watchTrips();
 
   Future<void> startRecording() async {
-    if (_state == TripState.recording || _state == TripState.paused || _isInitializing) return;
-    
+    if (_state == TripState.recording ||
+        _state == TripState.paused ||
+        _isInitializing) return;
+
     _isInitializing = true;
     notifyListeners();
     _resetError();
-    
+
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -163,7 +168,8 @@ class TripService extends ChangeNotifier {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) throw Exception('Location permission denied');
+        if (permission == LocationPermission.denied)
+          throw Exception('Location permission denied');
       }
       if (permission == LocationPermission.deniedForever) {
         throw Exception('Location permissions are permanently denied');
@@ -220,34 +226,41 @@ class TripService extends ChangeNotifier {
     notifyListeners();
 
     _stopStreams();
-    
+
     if (_pauseStartTime != null) {
       _pausedDuration += DateTime.now().difference(_pauseStartTime!);
       _pauseStartTime = null;
     }
 
     final endTime = DateTime.now();
-    final rawDuration = _startTime == null ? Duration.zero : endTime.difference(_startTime!);
+    final rawDuration =
+        _startTime == null ? Duration.zero : endTime.difference(_startTime!);
     final activeDuration = rawDuration - _pausedDuration;
 
     double distance = 0.0;
     for (int i = 1; i < _points.length; i++) {
       final prev = _points[i - 1];
       final cur = _points[i];
-      distance += Geolocator.distanceBetween(prev.latitude, prev.longitude, cur.latitude, cur.longitude);
+      distance += Geolocator.distanceBetween(
+          prev.latitude, prev.longitude, cur.latitude, cur.longitude);
     }
 
-    final durationSeconds = activeDuration.inSeconds > 0 ? activeDuration.inSeconds : 0;
+    final durationSeconds =
+        activeDuration.inSeconds > 0 ? activeDuration.inSeconds : 0;
     final avgSpeed = durationSeconds > 0 ? (distance / durationSeconds) : 0.0;
 
-    final summary = TripSummary(distanceMeters: distance, duration: activeDuration, averageSpeed: avgSpeed);
+    final summary = TripSummary(
+        distanceMeters: distance,
+        duration: activeDuration,
+        averageSpeed: avgSpeed);
     lastSummary = summary;
-    
+
     // Fetch weather data (optional enrichment)
     WeatherData? weatherData;
     if (_points.isNotEmpty) {
       final midPoint = _points[_points.length ~/ 2];
-      weatherData = await _weatherService.getWeather(midPoint.latitude, midPoint.longitude);
+      weatherData = await _weatherService.getWeather(
+          midPoint.latitude, midPoint.longitude);
     }
 
     final trip = Trip(
@@ -267,23 +280,23 @@ class TripService extends ChangeNotifier {
     // Save trip
     await _repository.saveTrip(trip);
     lastSavedTrip = trip;
-    
+
     // Save candidates linked to this trip
     if (_candidates.isNotEmpty) {
       await _repository.saveCandidates(_currentTripId!, _candidates);
     }
-    
+
     // Reset auto-detected flag
     _isAutoDetectedTrip = false;
 
     _state = TripState.saved;
-    
+
     // If auto-detection was on, go back to monitoring ONLY if no review needed
     if (_isAutoDetectionEnabled && _candidates.isEmpty) {
       _state = TripState.autoMonitoring;
       _startAutoMonitoring();
     }
-    
+
     notifyListeners();
   }
 
@@ -294,52 +307,55 @@ class TripService extends ChangeNotifier {
     lastSavedTrip = null;
     _currentTripId = null;
     _resetError();
-    _state = _isAutoDetectionEnabled ? TripState.autoMonitoring : TripState.idle;
-    
+    _state =
+        _isAutoDetectionEnabled ? TripState.autoMonitoring : TripState.idle;
+
     if (_isAutoDetectionEnabled) {
       _startAutoMonitoring();
     }
-    
+
     notifyListeners();
   }
 
   void retry() {
     if (_state == TripState.error) {
-       clear();
+      clear();
     }
   }
 
   Future<void> deleteTrip(String tripId) async {
-      await _repository.deleteTrip(tripId);
+    await _repository.deleteTrip(tripId);
   }
 
   Future<void> renameTrip(Trip trip, String newName) async {
     final updatedTrip = trip.copyWith(name: newName);
     await _repository.saveTrip(updatedTrip);
   }
-  
+
   /// Update trip's publishable status
   Future<void> setTripPublishable(String tripId, bool isPublishable) async {
     await _repository.updateTripPublishable(tripId, isPublishable);
   }
-  
+
   /// Get candidates for a specific trip
   Future<List<CandidateIssue>> getCandidatesForTrip(String tripId) async {
     return await _repository.getCandidates(tripId);
   }
-  
+
   /// Update a candidate's status (confirm/reject)
-  Future<void> updateCandidateStatus(String tripId, CandidateIssue candidate) async {
+  Future<void> updateCandidateStatus(
+      String tripId, CandidateIssue candidate) async {
     await _repository.updateCandidate(tripId, candidate);
   }
 
   void _resetError() {
     _errorMessage = null;
   }
-  
+
   // Method to manually restart monitoring if needed (safeguard)
   void restartMonitoring() {
-    if (_isAutoDetectionEnabled && (_state == TripState.idle || _state == TripState.saved)) {
+    if (_isAutoDetectionEnabled &&
+        (_state == TripState.idle || _state == TripState.saved)) {
       _state = TripState.autoMonitoring;
       _startAutoMonitoring();
     }
@@ -347,11 +363,12 @@ class TripService extends ChangeNotifier {
 
   void _startStreams() {
     _positionSub = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 5),
+      locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best, distanceFilter: 5),
     ).listen((pos) {
       _currentAccuracy = pos.accuracy;
       _currentSpeed = pos.speed >= 0 ? pos.speed : 0;
-      
+
       if (pos.accuracy > 20.0) {
         notifyListeners();
         return;
@@ -360,7 +377,7 @@ class TripService extends ChangeNotifier {
         latitude: pos.latitude,
         longitude: pos.longitude,
         elevation: pos.altitude,
-        accuracyMeters: pos.accuracy, 
+        accuracyMeters: pos.accuracy,
         timestamp: DateTime.now(),
       ));
       notifyListeners();
@@ -372,10 +389,11 @@ class TripService extends ChangeNotifier {
     });
 
     // Always start sensor streams for obstacle detection
-    _accelSub = userAccelerometerEventStream().listen((UserAccelerometerEvent event) {
+    _accelSub =
+        userAccelerometerEventStream().listen((UserAccelerometerEvent event) {
       _processSensorEvent(event);
     });
-    
+
     // Gyroscope stream for enhanced detection
     _gyroSub = gyroscopeEventStream().listen((GyroscopeEvent event) {
       _lastGyroReading = [event.x, event.y, event.z];
@@ -385,28 +403,26 @@ class TripService extends ChangeNotifier {
   void _processSensorEvent(UserAccelerometerEvent event) {
     // Combined sensor fusion: accelerometer magnitude + gyroscope angular velocity
     // Higher values indicate more violent motion -> more likely pothole
-    
-    final accelMagnitude = math.sqrt(
-      event.x * event.x + event.y * event.y + event.z * event.z
-    );
-    
-    final gyroMagnitude = math.sqrt(
-      _lastGyroReading[0] * _lastGyroReading[0] +
-      _lastGyroReading[1] * _lastGyroReading[1] +
-      _lastGyroReading[2] * _lastGyroReading[2]
-    );
-    
+
+    final accelMagnitude =
+        math.sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+
+    final gyroMagnitude = math.sqrt(_lastGyroReading[0] * _lastGyroReading[0] +
+        _lastGyroReading[1] * _lastGyroReading[1] +
+        _lastGyroReading[2] * _lastGyroReading[2]);
+
     // Combined score: accelerometer spike + rotational motion
     // Pothole typically causes both vertical acceleration AND rotation
     final combinedScore = accelMagnitude + (gyroMagnitude * 0.5);
-    
+
     // Threshold tuned for biking scenarios
     const double threshold = 10.0;
-    
+
     if (combinedScore > threshold) {
       final now = DateTime.now();
       // Debounce: ignore if we just detected something < 2 seconds ago
-      if (_lastAnomalyTime != null && now.difference(_lastAnomalyTime!) < const Duration(seconds: 2)) {
+      if (_lastAnomalyTime != null &&
+          now.difference(_lastAnomalyTime!) < const Duration(seconds: 2)) {
         return;
       }
       _lastAnomalyTime = now;
@@ -418,7 +434,7 @@ class TripService extends ChangeNotifier {
         if (now.difference(lastPoint.timestamp).inSeconds < 10) {
           // Calculate confidence based on sensor magnitude
           final confidence = (combinedScore / 20.0).clamp(0.5, 1.0);
-          
+
           final candidate = CandidateIssue(
             id: _uuid.v4(),
             tripId: _currentTripId ?? '',
@@ -446,7 +462,7 @@ class TripService extends ChangeNotifier {
     _accelSub = null;
     _gyroSub = null;
   }
-  
+
   @override
   void dispose() {
     _stopStreams();

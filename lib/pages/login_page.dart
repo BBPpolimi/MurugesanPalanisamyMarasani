@@ -64,8 +64,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,16 +81,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 60), // Top spacing
-                    const Icon(Icons.directions_bike, size: 80, color: Colors.green),
+                    const Icon(Icons.directions_bike,
+                        size: 80, color: Colors.green),
                     const SizedBox(height: 32),
                     Text(
                       'Welcome Back',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            fontSize: 32,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                fontSize: 32,
+                              ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -112,7 +112,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 20),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       style: const TextStyle(fontSize: 16),
@@ -127,7 +128,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 20),
                       ),
                       style: const TextStyle(fontSize: 16),
                     ),
@@ -149,7 +151,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign In', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : const Text('Sign In',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 32),
                     const Row(
@@ -157,7 +161,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Expanded(child: Divider()),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                          child: Text('OR',
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500)),
                         ),
                         Expanded(child: Divider()),
                       ],
@@ -165,8 +172,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     const SizedBox(height: 32),
                     OutlinedButton.icon(
                       onPressed: _isLoading ? null : _handleGoogleLogin,
-                      icon: const Icon(Icons.g_mobiledata, size: 32), 
-                      label: const Text('Continue with Google', style: TextStyle(fontSize: 16)),
+                      icon: const Icon(Icons.g_mobiledata, size: 32),
+                      label: const Text('Continue with Google',
+                          style: TextStyle(fontSize: 16)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -179,9 +187,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     TextButton(
                       onPressed: _isLoading ? null : _handleGuestLogin,
                       style: TextButton.styleFrom(
-                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Continue as Guest', style: TextStyle(fontSize: 16)),
+                      child: const Text('Continue as Guest',
+                          style: TextStyle(fontSize: 16)),
                     ),
                     const Spacer(),
                     Padding(
@@ -191,7 +200,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         children: [
                           Text(
                             "Don't have an account? ",
-                            style: TextStyle(color: Colors.grey[600], fontSize: 15),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 15),
                           ),
                           TextButton(
                             onPressed: () {
@@ -201,7 +211,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     builder: (context) => const RegisterPage()),
                               );
                             },
-                            child: const Text('Sign Up', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                            child: const Text('Sign Up',
+                                style: TextStyle(
+                                    fontSize: 15, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),

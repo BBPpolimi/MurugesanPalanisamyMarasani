@@ -19,8 +19,8 @@ void main() {
     // // Verify that our title is present
     // expect(find.text('Best Bike Paths'), findsOneWidget);
     // expect(find.byIcon(Icons.directions_bike), findsWidgets);
-    
-    // Skipping actual widget test because Firebase initialization requires mocking 
+
+    // Skipping actual widget test because Firebase initialization requires mocking
     // which is out of scope for this task's verification plan.
     expect(true, isTrue);
   });

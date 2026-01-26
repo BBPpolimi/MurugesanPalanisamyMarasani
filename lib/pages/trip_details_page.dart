@@ -25,15 +25,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final trip = widget.trip;
-    
+
     Set<Polyline> polylines = {};
     Set<Marker> markers = {};
     CameraPosition initialPosition;
 
     if (trip.points.isNotEmpty) {
-      final points = trip.points
-          .map((p) => LatLng(p.latitude, p.longitude))
-          .toList();
+      final points =
+          trip.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
       polylines.add(
         Polyline(
@@ -48,7 +47,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         Marker(
           markerId: const MarkerId('start'),
           position: points.first,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: const InfoWindow(title: 'Start'),
         ),
       );
@@ -61,13 +61,13 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
           infoWindow: const InfoWindow(title: 'End'),
         ),
       );
-      
+
       initialPosition = CameraPosition(
         target: points.first,
         zoom: 15,
       );
     } else {
-       initialPosition = const CameraPosition(
+      initialPosition = const CameraPosition(
         target: LatLng(0, 0),
         zoom: 2,
       );
@@ -99,23 +99,26 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                     polylines: polylines,
                     markers: markers,
                     onMapCreated: (controller) {
-                       if (trip.points.isNotEmpty) {
-                          final bounds = _boundsFromLatLngList(
-                            trip.points.map((p) => LatLng(p.latitude, p.longitude)).toList()
-                          );
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                             try {
-                               controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
-                             } catch (e) {
-                               debugPrint("Map animation error (expected if disposed): $e");
-                             }
-                          });
-                       }
+                      if (trip.points.isNotEmpty) {
+                        final bounds = _boundsFromLatLngList(trip.points
+                            .map((p) => LatLng(p.latitude, p.longitude))
+                            .toList());
+                        Future.delayed(const Duration(milliseconds: 500), () {
+                          try {
+                            controller.animateCamera(
+                                CameraUpdate.newLatLngBounds(bounds, 50));
+                          } catch (e) {
+                            debugPrint(
+                                "Map animation error (expected if disposed): $e");
+                          }
+                        });
+                      }
                     },
                   )
-                : const Center(child: Text('No GPS points recorded for this trip')),
+                : const Center(
+                    child: Text('No GPS points recorded for this trip')),
           ),
-          
+
           // Details panel
           Expanded(
             flex: 1,
@@ -131,7 +134,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                       runSpacing: 8,
                       children: [
                         if (trip.isAutoDetected)
-                          _buildBadge('Auto-detected', Colors.blue, Icons.auto_awesome),
+                          _buildBadge(
+                              'Auto-detected', Colors.blue, Icons.auto_awesome),
                         _buildBadge(
                           _isPublishable ? 'Public' : 'Private',
                           _isPublishable ? Colors.green : Colors.grey,
@@ -146,35 +150,45 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Stats grid
                     Row(
                       children: [
-                        _buildStatCard('Distance', '${(trip.distanceMeters / 1000).toStringAsFixed(2)} km', Icons.straighten),
+                        _buildStatCard(
+                            'Distance',
+                            '${(trip.distanceMeters / 1000).toStringAsFixed(2)} km',
+                            Icons.straighten),
                         const SizedBox(width: 12),
-                        _buildStatCard('Duration', '${trip.duration.inMinutes} min', Icons.timer),
+                        _buildStatCard('Duration',
+                            '${trip.duration.inMinutes} min', Icons.timer),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        _buildStatCard('Avg Speed', '${(trip.averageSpeed * 3.6).toStringAsFixed(1)} km/h', Icons.speed),
+                        _buildStatCard(
+                            'Avg Speed',
+                            '${(trip.averageSpeed * 3.6).toStringAsFixed(1)} km/h',
+                            Icons.speed),
                         const SizedBox(width: 12),
-                        _buildStatCard('Points', '${trip.points.length}', Icons.location_on),
+                        _buildStatCard('Points', '${trip.points.length}',
+                            Icons.location_on),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Time info
                     Text(
                       'Start: ${_formatDateTime(trip.startTime)}',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     ),
                     Text(
                       'End: ${_formatDateTime(trip.endTime)}',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     ),
-                    
+
                     // Weather info if available
                     if (trip.weatherData != null) ...[
                       const SizedBox(height: 12),
@@ -192,7 +206,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Weather: ${trip.weatherData!.conditions}'),
+                                  Text(
+                                      'Weather: ${trip.weatherData!.conditions}'),
                                   Text(
                                     'Temp: ${trip.weatherData!.temperature.toStringAsFixed(1)}°C | Wind: ${trip.weatherData!.windSpeed.toStringAsFixed(1)} m/s',
                                     style: const TextStyle(fontSize: 12),
@@ -204,15 +219,15 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                         ),
                       ),
                     ],
-                    
+
                     // Publish toggle
                     const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text('Share with Community'),
                       subtitle: Text(
-                        _isPublishable 
-                          ? 'This trip is visible to other users' 
-                          : 'Only you can see this trip',
+                        _isPublishable
+                            ? 'This trip is visible to other users'
+                            : 'Only you can see this trip',
                       ),
                       value: _isPublishable,
                       onChanged: (val) => _togglePublishable(),
@@ -241,7 +256,9 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(text,
+              style: TextStyle(
+                  color: color, fontSize: 12, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -262,8 +279,12 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                Text(value,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(label,
+                    style:
+                        TextStyle(color: Colors.grey.shade600, fontSize: 11)),
               ],
             ),
           ],
@@ -279,13 +300,16 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
   Future<void> _togglePublishable() async {
     final newValue = !_isPublishable;
     setState(() => _isPublishable = newValue);
-    
+
     try {
-      await ref.read(tripServiceProvider).setTripPublishable(widget.trip.id, newValue);
+      await ref
+          .read(tripServiceProvider)
+          .setTripPublishable(widget.trip.id, newValue);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(newValue ? 'Trip is now public!' : 'Trip is now private'),
+            content:
+                Text(newValue ? 'Trip is now public!' : 'Trip is now private'),
             backgroundColor: newValue ? Colors.green : Colors.grey,
           ),
         );
@@ -295,7 +319,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       setState(() => _isPublishable = !newValue);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error updating: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -315,6 +340,7 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         if (latLng.longitude < y0!) y0 = latLng.longitude;
       }
     }
-    return LatLngBounds(northeast: LatLng(x1!, y1!), southwest: LatLng(x0!, y0!));
+    return LatLngBounds(
+        northeast: LatLng(x1!, y1!), southwest: LatLng(x0!, y0!));
   }
 }

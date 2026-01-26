@@ -19,9 +19,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill all fields')),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
       return;
     }
 
@@ -33,7 +33,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             _nameController.text.trim(),
           );
       if (mounted) {
-        Navigator.pop(context); // Go back to login or let auth wrapper handle it if it signs in automatically
+        Navigator.pop(
+            context); // Go back to login or let auth wrapper handle it if it signs in automatically
         // Firebase automatically signs in after registration usually.
         // We can just pop, and the AuthWrapper in main.dart will see the user is logged in.
       }
@@ -44,7 +45,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         );
       }
     } finally {
-     if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -53,7 +54,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     setState(() => _isLoading = true);
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
-      if(mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,11 +62,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         );
       }
     } finally {
-      if(mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-  
-
 
   @override
   Widget build(BuildContext context) {
@@ -93,11 +92,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     Text(
                       'Join Best Bike Path',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            fontSize: 28,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                fontSize: 28,
+                              ),
                     ),
                     const SizedBox(height: 32),
                     TextField(
@@ -108,7 +108,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 20),
                       ),
                       textCapitalization: TextCapitalization.words,
                       style: const TextStyle(fontSize: 16),
@@ -122,7 +123,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 20),
                       ),
                       keyboardType: TextInputType.emailAddress,
                       style: const TextStyle(fontSize: 16),
@@ -137,7 +139,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 20),
                       ),
                       style: const TextStyle(fontSize: 16),
                     ),
@@ -159,24 +162,30 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Sign Up', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : const Text('Sign Up',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 32),
-                     const Row(
+                    const Row(
                       children: [
                         Expanded(child: Divider()),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                          child: Text('OR',
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500)),
                         ),
                         Expanded(child: Divider()),
                       ],
                     ),
                     const SizedBox(height: 32),
-                     OutlinedButton.icon(
+                    OutlinedButton.icon(
                       onPressed: _isLoading ? null : _handleGoogleSignUp,
                       icon: const Icon(Icons.g_mobiledata, size: 32),
-                      label: const Text('Sign up with Google', style: TextStyle(fontSize: 16)),
+                      label: const Text('Sign up with Google',
+                          style: TextStyle(fontSize: 16)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

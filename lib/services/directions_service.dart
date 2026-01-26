@@ -1,106 +1,140 @@
 import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uuid/uuid.dart';
+import '../models/route_candidate.dart';
 
 class DirectionsService {
-  static const String _googleApiKey = 'AIzaSyB0JGW9K_M69OPlEkUb4bjImj3ogpjJxNM'; // Using the new working API Key
-  static const String _baseUrl = 'https://maps.googleapis.com/maps/api/directions/json';
+  static const String _googleApiKey =
+      'AIzaSyB0JGW9K_M69OPlEkUb4bjImj3ogpjJxNM'; // Using the new working API Key
+  static const String _baseUrl =
+      'https://maps.googleapis.com/maps/api/directions/json';
 
   final Dio _dio;
+  final _uuid = const Uuid();
 
   DirectionsService({Dio? dio}) : _dio = dio ?? Dio();
 
-  Future<Directions?> getDirections({
+  /// Fetches multiple route candidates between origin and destination.
+  /// Returns an empty list if no routes found or error occurs.
+  Future<List<RouteCandidate>> getAlternativeDirections({
     required LatLng origin,
     required LatLng destination,
     String mode = 'bicycling',
   }) async {
+    List<RouteCandidate> candidates = [];
+
     // 1. Try Google Directions API
     try {
-      print('DEBUG: Requesting Directions from $origin to $destination mode=$mode');
+      print(
+          'DEBUG: Requesting Directions from $origin to $destination mode=$mode alternatives=true');
       final response = await _dio.get(
         _baseUrl,
         queryParameters: {
           'origin': '${origin.latitude},${origin.longitude}',
           'destination': '${destination.latitude},${destination.longitude}',
           'key': _googleApiKey,
-          'mode': mode, 
+          'mode': mode,
+          'alternatives': 'true',
         },
       );
-      
+
       print('DEBUG: Directions Response Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = Map<String, dynamic>.from(response.data);
-        // Check for API-level errors even with 200 OK
         if (data['status'] == 'OK' && (data['routes'] as List).isNotEmpty) {
-            final route = data['routes'][0];
+          final routes = data['routes'] as List;
+
+          for (var route in routes) {
             final overviewPolyline = route['overview_polyline']['points'];
             final legs = route['legs'][0];
             final distance = legs['distance']['text'];
             final duration = legs['duration']['text'];
 
-            return Directions(
+            final candidate = RouteCandidate(
+              id: _uuid.v4(),
               bounds: _boundsFrom(
                 route['bounds']['northeast'],
                 route['bounds']['southwest'],
               ),
               polylinePoints: _decodePolyline(overviewPolyline),
+              encodedPolyline: overviewPolyline,
               totalDistance: distance,
               totalDuration: duration,
               distanceValue: (legs['distance']['value'] as num).toInt(),
             );
+            candidates.add(candidate);
+          }
+          return candidates; // Return immediately if Google API succeeds
         } else {
-           print('DEBUG: Google API Error or Empty: ${data['status']} - ${data['error_message']}');
-           // Intentionally fall through to OSRM
+          print(
+              'DEBUG: Google API Error or Empty: ${data['status']} - ${data['error_message']}');
         }
-      } else {
-        print('DEBUG: Non-200 Status Code: ${response.statusCode}');
       }
     } catch (e) {
       print('DEBUG: Directions Exception: $e');
-      // Continue to OSRM fallback
-    }
-    
-    // 2. OSRM Fallback (Free, no key required for demo)
-    try {
-      print('DEBUG: Attempting OSRM Fallback...');
-      // Use HTTPS for Android compliance. Use 'driving' profile as it's most reliable on public demo.
-      final osrmUrl = 'https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}';
-      final response = await _dio.get(osrmUrl, queryParameters: {'overview': 'full'});
-      
-      print('DEBUG: OSRM Response Status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final routes = response.data['routes'] as List;
-        if (routes.isNotEmpty) {
-           final geometry = routes[0]['geometry'] as String;
-           final distance = routes[0]['distance']; // meters (num)
-           final duration = routes[0]['duration']; // seconds
-           
-           return Directions(
-             bounds: LatLngBounds(southwest: origin, northeast: destination), // Approx
-             polylinePoints: _decodePolyline(geometry), // OSRM uses same encoding
-             totalDistance: '${(distance/1000).toStringAsFixed(1)} km',
-             totalDuration: '${(duration/60).toStringAsFixed(0)} mins',
-             distanceValue: (distance as num).toInt(),
-           );
-        }
-      }
-    } catch (e) {
-      print('DEBUG: OSRM Exception: $e');
     }
 
+    // 2. OSRM Fallback - OSRM alternatives support is limited in public demo, but we can try.
+    if (candidates.isEmpty) {
+      try {
+        print('DEBUG: Attempting OSRM Fallback...');
+        // OSRM 'alternatives=true' query param
+        final osrmUrl =
+            'https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}';
+        final response = await _dio.get(osrmUrl,
+            queryParameters: {'overview': 'full', 'alternatives': 'true'});
+
+        if (response.statusCode == 200) {
+          final routes = response.data['routes'] as List;
+          for (var route in routes) {
+            final geometry = route['geometry'] as String;
+            final distance = route['distance']; // meters (num)
+            final duration = route['duration']; // seconds
+
+            final candidate = RouteCandidate(
+              id: _uuid.v4(),
+              bounds: LatLngBounds(
+                  southwest: origin, northeast: destination), // Approx for OSRM
+              polylinePoints: _decodePolyline(geometry),
+              encodedPolyline: geometry,
+              totalDistance: '${(distance / 1000).toStringAsFixed(1)} km',
+              totalDuration: '${(duration / 60).toStringAsFixed(0)} mins',
+              distanceValue: (distance as num).toInt(),
+            );
+            candidates.add(candidate);
+          }
+        }
+      } catch (e) {
+        print('DEBUG: OSRM Exception: $e');
+      }
+    }
+
+    return candidates;
+  }
+
+  // Kept for backward compatibility if needed, but updated to use RouteCandidate logic internally if possible or just simplified.
+  // Actually, the previous `getDirections` returned `Directions?`.
+  // We can keep a simplified version or alias it to the first candidate.
+  Future<RouteCandidate?> getDirections({
+    required LatLng origin,
+    required LatLng destination,
+    String mode = 'bicycling',
+  }) async {
+    final candidates = await getAlternativeDirections(
+        origin: origin, destination: destination, mode: mode);
+    if (candidates.isNotEmpty) return candidates.first;
     return null;
   }
-  
-  LatLngBounds _boundsFrom(Map<String, dynamic> northeast, Map<String, dynamic> southwest) {
-      return LatLngBounds(
-        northeast: LatLng(northeast['lat'], northeast['lng']),
-        southwest: LatLng(southwest['lat'], southwest['lng']),
-      );
+
+  LatLngBounds _boundsFrom(
+      Map<String, dynamic> northeast, Map<String, dynamic> southwest) {
+    return LatLngBounds(
+      northeast: LatLng(northeast['lat'], northeast['lng']),
+      southwest: LatLng(southwest['lat'], southwest['lng']),
+    );
   }
 
-  // Initializing PolylinePoints in recent versions is tricky, so we decode manually.
   List<LatLng> _decodePolyline(String encoded) {
     List<LatLng> poly = [];
     int index = 0, len = encoded.length;
@@ -132,18 +166,4 @@ class DirectionsService {
   }
 }
 
-class Directions {
-  final LatLngBounds bounds;
-  final List<LatLng> polylinePoints;
-  final String totalDistance;
-  final String totalDuration;
-  final int distanceValue; // in meters
-
-  const Directions({
-    required this.bounds,
-    required this.polylinePoints,
-    required this.totalDistance,
-    required this.totalDuration,
-    this.distanceValue = 0,
-  });
-}
+// Deprecated Directions class removed in favor of RouteCandidate

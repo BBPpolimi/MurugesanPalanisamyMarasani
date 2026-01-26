@@ -37,7 +37,8 @@ class AuthService {
   }
 
   // Email/Password Sign Up
-  Future<AppUser?> signUpWithEmail(String email, String password, String name) async {
+  Future<AppUser?> signUpWithEmail(
+      String email, String password, String name) async {
     final result = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
@@ -51,13 +52,13 @@ class AuthService {
     try {
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
-      
+
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      
+
       final result = await _auth.signInWithCredential(credential);
       return _userFromFirebase(result.user);
     } catch (e) {
@@ -68,8 +69,6 @@ class AuthService {
       rethrow;
     }
   }
-
-
 
   // Guest Login (Anonymous)
   Future<AppUser?> signInAsGuest() async {

@@ -26,9 +26,8 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
     final candidates = tripService.candidates;
 
     // Convert points to LatLng for Polyline
-    final polylineCoordinates = points
-        .map((p) => LatLng(p.latitude, p.longitude))
-        .toList();
+    final polylineCoordinates =
+        points.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
     // Auto-follow logic
     if (_shouldFollowUser && points.isNotEmpty && _mapController != null) {
@@ -47,19 +46,19 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: _buildStatusCard(context, tripService),
           ),
-          
+
           // Auto-detection Toggle (visible when idle or autoMonitoring)
           if (state == TripState.idle || state == TripState.autoMonitoring)
             SwitchListTile(
               title: const Text('Auto-detect Biking'),
-              subtitle: Text(state == TripState.autoMonitoring 
-                ? 'Monitoring speed... (${(tripService.currentSpeed * 3.6).toStringAsFixed(1)} km/h)'
-                : 'Auto-starts recording when biking detected'),
+              subtitle: Text(state == TripState.autoMonitoring
+                  ? 'Monitoring speed... (${(tripService.currentSpeed * 3.6).toStringAsFixed(1)} km/h)'
+                  : 'Auto-starts recording when biking detected'),
               value: tripService.isAutoDetectionEnabled,
               onChanged: (val) => tripService.toggleAutoDetection(val),
               activeColor: Colors.green,
             ),
-           
+
           // Monitoring status indicator
           if (state == TripState.autoMonitoring)
             Container(
@@ -68,13 +67,16 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                  SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                   SizedBox(width: 8),
                   Text('Waiting for biking to start...'),
                 ],
               ),
             ),
-            
+
           // Recording indicator with Auto badge
           if (state == TripState.recording && tripService.isAutoDetectedTrip)
             Container(
@@ -89,20 +91,20 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                 ],
               ),
             ),
-            
+
           if (state == TripState.recording)
-             Container(
-               color: Colors.amber.shade100,
-               padding: const EdgeInsets.all(8),
-               child: Row(
-                 mainAxisAlignment: MainAxisAlignment.center,
-                 children: [
-                   const Icon(Icons.warning, color: Colors.orange),
-                   const SizedBox(width: 8),
-                   Text('${candidates.length} potential issues detected'),
-                 ],
-               ),
-             ),
+            Container(
+              color: Colors.amber.shade100,
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.warning, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Text('${candidates.length} potential issues detected'),
+                ],
+              ),
+            ),
 
           /// MAP AREA (replaces the list)
           Expanded(
@@ -124,34 +126,40 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                       points: polylineCoordinates,
                     ),
                   },
-                  markers: candidates.map((c) => Marker(
-                    markerId: MarkerId(c.id),
-                    position: LatLng(c.lat, c.lng),
-                    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                    infoWindow: const InfoWindow(title: 'Potential Issue'),
-                  )).toSet(),
+                  markers: candidates
+                      .map((c) => Marker(
+                            markerId: MarkerId(c.id),
+                            position: LatLng(c.lat, c.lng),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                                BitmapDescriptor.hueOrange),
+                            infoWindow:
+                                const InfoWindow(title: 'Potential Issue'),
+                          ))
+                      .toSet(),
                   onMapCreated: (controller) => _mapController = controller,
                   onCameraMoveStarted: () {
-                     // Optionally disable auto follow
+                    // Optionally disable auto follow
                   },
                 ),
                 Positioned(
-                   bottom: 16,
-                   left: 16,
-                   child: FloatingActionButton(
-                     mini: true,
-                     backgroundColor: _shouldFollowUser ? Colors.blue : Colors.white,
-                     child: Icon(Icons.navigation, color: _shouldFollowUser ? Colors.white : Colors.black),
-                     onPressed: () {
+                    bottom: 16,
+                    left: 16,
+                    child: FloatingActionButton(
+                      mini: true,
+                      backgroundColor:
+                          _shouldFollowUser ? Colors.blue : Colors.white,
+                      child: Icon(Icons.navigation,
+                          color:
+                              _shouldFollowUser ? Colors.white : Colors.black),
+                      onPressed: () {
                         setState(() {
                           _shouldFollowUser = !_shouldFollowUser;
                         });
-                     },
-                   )
-                ),
-                
+                      },
+                    )),
+
                 // Metrics Overlay
-                 Positioned(
+                Positioned(
                   top: 16,
                   right: 16,
                   child: Container(
@@ -159,13 +167,18 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                     decoration: BoxDecoration(
                       color: Colors.white.withAlpha(230), // approx 0.9 * 255
                       borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
+                      boxShadow: const [
+                        BoxShadow(blurRadius: 4, color: Colors.black26)
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('Points: ${points.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Accuracy: ${tripService.currentAccuracy?.toStringAsFixed(1) ?? "--"} m'),
+                        Text('Points: ${points.length}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                            'Accuracy: ${tripService.currentAccuracy?.toStringAsFixed(1) ?? "--"} m'),
                       ],
                     ),
                   ),
@@ -176,59 +189,68 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
 
           /// ACTION BUTTONS CONTAINER
           Container(
-             padding: const EdgeInsets.all(16),
-             decoration: const BoxDecoration(
-               color: Colors.white,
-               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
-             ),
-             child: Column(
-               mainAxisSize: MainAxisSize.min,
-               children: [
-                 if ((state == TripState.idle || state == TripState.error || state == TripState.autoMonitoring) 
-                     && !tripService.isAutoDetectionEnabled)
-                    _buildStartButton(ref, context, tripService),
-      
-                  if (state == TripState.recording || state == TripState.paused) ...[
-                     Row(
-                       children: [
-                         Expanded(child: _buildPauseResumeButton(ref, state)),
-                         const SizedBox(width: 8),
-                         Expanded(child: _buildStopButton(ref, context)),
-                       ],
-                     ),
-                  ],
-      
-                   if (state == TripState.saved)
-                     Column(
-                       children: [
-                         if (candidates.isNotEmpty)
-                           Padding(
-                             padding: const EdgeInsets.only(bottom: 8.0),
-                             child: ElevatedButton.icon(
-                               onPressed: () {
-                                 Navigator.push(
-                                   context, 
-                                   MaterialPageRoute(builder: (_) => const ReviewIssuesPage())
-                                 );
-                               }, 
-                               icon: const Icon(Icons.rate_review), 
-                               label: Text('Review ${candidates.length} Issues'),
-                               style: ElevatedButton.styleFrom(
-                                 backgroundColor: Colors.orange,
-                                 foregroundColor: Colors.white, 
-                                 minimumSize: const Size.fromHeight(50)
-                               ),
-                             ),
-                           ),
-                         ElevatedButton(
-                           onPressed: () => ref.read(tripServiceProvider).clear(), // Reset to idle
-                           child: const Text('Start New Trip'),
-                           style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                         ),
-                       ],
-                     ),
-               ],
-             ),
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, -2))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if ((state == TripState.idle ||
+                        state == TripState.error ||
+                        state == TripState.autoMonitoring) &&
+                    !tripService.isAutoDetectionEnabled)
+                  _buildStartButton(ref, context, tripService),
+                if (state == TripState.recording ||
+                    state == TripState.paused) ...[
+                  Row(
+                    children: [
+                      Expanded(child: _buildPauseResumeButton(ref, state)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildStopButton(ref, context)),
+                    ],
+                  ),
+                ],
+                if (state == TripState.saved)
+                  Column(
+                    children: [
+                      if (candidates.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ReviewIssuesPage()));
+                            },
+                            icon: const Icon(Icons.rate_review),
+                            label: Text('Review ${candidates.length} Issues'),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(50)),
+                          ),
+                        ),
+                      ElevatedButton(
+                        onPressed: () => ref
+                            .read(tripServiceProvider)
+                            .clear(), // Reset to idle
+                        child: const Text('Start New Trip'),
+                        style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50)),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -257,7 +279,9 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
       case TripState.recording:
         icon = Icons.fiber_manual_record;
         color = Colors.red;
-        title = tripService.isAutoDetectedTrip ? 'Recording (Auto)' : 'Recording...';
+        title = tripService.isAutoDetectedTrip
+            ? 'Recording (Auto)'
+            : 'Recording...';
         subtitle = 'GPS is tracking your ride';
         break;
       case TripState.paused:
@@ -294,31 +318,36 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Row(
           children: [
-             Icon(icon, size: 32, color: color),
-             const SizedBox(width: 16),
-             Expanded(
-               child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                   Text(title, style: Theme.of(context).textTheme.titleMedium),
-                   Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                 ],
-               ),
-             ),
+            Icon(icon, size: 32, color: color),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStartButton(WidgetRef ref, BuildContext context, TripService tripService) {
+  Widget _buildStartButton(
+      WidgetRef ref, BuildContext context, TripService tripService) {
     return ElevatedButton.icon(
-      icon: tripService.isInitializing 
-          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+      icon: tripService.isInitializing
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2))
           : const Icon(Icons.play_arrow),
       label: Text(tripService.isInitializing ? 'Starting...' : 'Start Trip'),
-      onPressed: tripService.isInitializing 
-          ? null 
+      onPressed: tripService.isInitializing
+          ? null
           : () async {
               await ref.read(tripServiceProvider).startRecording();
             },
@@ -336,11 +365,11 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
       icon: Icon(isPaused ? Icons.play_arrow : Icons.pause),
       label: Text(isPaused ? 'Resume' : 'Pause'),
       onPressed: () {
-         if (isPaused) {
-           ref.read(tripServiceProvider).resumeRecording();
-         } else {
-           ref.read(tripServiceProvider).pauseRecording();
-         }
+        if (isPaused) {
+          ref.read(tripServiceProvider).resumeRecording();
+        } else {
+          ref.read(tripServiceProvider).pauseRecording();
+        }
       },
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(50),
@@ -388,8 +417,10 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
         );
 
         if (shouldStop == true) {
-           final name = nameController.text.trim().isEmpty ? null : nameController.text.trim();
-           await ref.read(tripServiceProvider).stopRecording(tripName: name);
+          final name = nameController.text.trim().isEmpty
+              ? null
+              : nameController.text.trim();
+          await ref.read(tripServiceProvider).stopRecording(tripName: name);
         }
       },
       style: ElevatedButton.styleFrom(

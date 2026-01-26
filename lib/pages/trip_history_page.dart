@@ -24,50 +24,58 @@ class TripHistoryPage extends ConsumerWidget {
             itemCount: trips.length,
             itemBuilder: (context, index) {
               final item = trips[index];
-              
+
               String title = '';
               String subtitle = '';
               String id = '';
               bool isTrip = false;
-              
-               if (item is Trip) {
-                 title = item.name ?? item.startTime.toString().split('.')[0];
-                 subtitle = '${(item.distanceMeters / 1000).toStringAsFixed(2)} km - ${item.duration.inMinutes} min';
-                 id = item.id;
-                 isTrip = true;
-               } else if (item is BikePath) {
-                  title = item.name ?? 'Manual Path';
-                  subtitle = '${(item.distanceMeters / 1000).toStringAsFixed(2)} km';
-                  id = item.id;
-                  isTrip = false;
-               } else {
-                  title = 'Unknown Activity';
-                  id = '';
-               }
+
+              if (item is Trip) {
+                title = item.name ?? item.startTime.toString().split('.')[0];
+                subtitle =
+                    '${(item.distanceMeters / 1000).toStringAsFixed(2)} km - ${item.duration.inMinutes} min';
+                id = item.id;
+                isTrip = true;
+              } else if (item is BikePath) {
+                title = item.name ?? 'Manual Path';
+                subtitle =
+                    '${(item.distanceMeters / 1000).toStringAsFixed(2)} km';
+                id = item.id;
+                isTrip = false;
+              } else {
+                title = 'Unknown Activity';
+                id = '';
+              }
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: isTrip ? Colors.green : Colors.blue,
-                    child: Icon(isTrip ? Icons.directions_bike : Icons.edit_road, color: Colors.white, size: 20),
+                    child: Icon(
+                        isTrip ? Icons.directions_bike : Icons.edit_road,
+                        color: Colors.white,
+                        size: 20),
                   ),
                   title: Text(title),
                   subtitle: Text(subtitle),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                       IconButton(
-                         icon: const Icon(Icons.edit, size: 20),
-                         onPressed: () => _showRenameDialog(context, ref, item),
-                       ),
-                       IconButton(
-                         icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                         onPressed: () => _confirmDelete(context, ref, id, isTrip),
-                       ),
-                       const SizedBox(width: 8),
-                       const Icon(Icons.chevron_right),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _showRenameDialog(context, ref, item),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete,
+                            color: Colors.red, size: 20),
+                        onPressed: () =>
+                            _confirmDelete(context, ref, id, isTrip),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chevron_right),
                     ],
                   ),
                   onTap: () {
@@ -79,7 +87,9 @@ class TripHistoryPage extends ConsumerWidget {
                         ),
                       );
                     } else {
-                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manual Path details not implemented yet.')));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                              'Manual Path details not implemented yet.')));
                     }
                   },
                 ),
@@ -92,8 +102,9 @@ class TripHistoryPage extends ConsumerWidget {
       ),
     );
   }
-  
-  Future<void> _showRenameDialog(BuildContext context, WidgetRef ref, dynamic item) async {
+
+  Future<void> _showRenameDialog(
+      BuildContext context, WidgetRef ref, dynamic item) async {
     String currentName = '';
     if (item is Trip) currentName = item.name ?? '';
     if (item is BikePath) currentName = item.name ?? '';
@@ -104,7 +115,7 @@ class TripHistoryPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Rename Activity'),
-        // No wrapping SingleChildScrollView here automatically, but TextField usually works. 
+        // No wrapping SingleChildScrollView here automatically, but TextField usually works.
         // If needed we can add it, but Dialog usually handles it.
         content: TextField(
           controller: nameController,
@@ -128,29 +139,34 @@ class TripHistoryPage extends ConsumerWidget {
     );
 
     if (newName != null && newName.isNotEmpty) {
-       if (item is Trip) {
-          await ref.read(tripServiceProvider).renameTrip(item, newName);
-       } else if (item is BikePath) {
-          await ref.read(contributeServiceProvider).renameBikePath(item.id, newName);
-          ref.refresh(myBikePathsFutureProvider); // Assuming this provider is available and exported or we can just invalidate contributeServiceProvider or tripsStreamProvider
-          // Actually tripsStreamProvider listens to tripRepository which is fine, but for bike paths we might need to force refresh if it's not a real-time stream.
-          // In providers.dart, tripsStreamProvider fetches bikePaths on every trip stream event properly? 
-          // Wait, tripsStreamProvider only yields when tripsStream updates. Renaming a bike path might NOT trigger tripsStream update.
-          // We should force refresh tripsStreamProvider or better myBikePathsFutureProvider if used.
-          // tripsStreamProvider re-fetches bike paths on every trip stream event.
-          // But if we only rename a bike path, the TRIP stream doesn't change, so tripsStreamProvider might not emit safely.
-          // We need to invalidate tripsStreamProvider or make it depend on something that changes.
-          ref.invalidate(tripsStreamProvider);
-       }
+      if (item is Trip) {
+        await ref.read(tripServiceProvider).renameTrip(item, newName);
+      } else if (item is BikePath) {
+        await ref
+            .read(contributeServiceProvider)
+            .renameBikePath(item.id, newName);
+        ref.refresh(
+            myBikePathsFutureProvider); // Assuming this provider is available and exported or we can just invalidate contributeServiceProvider or tripsStreamProvider
+        // Actually tripsStreamProvider listens to tripRepository which is fine, but for bike paths we might need to force refresh if it's not a real-time stream.
+        // In providers.dart, tripsStreamProvider fetches bikePaths on every trip stream event properly?
+        // Wait, tripsStreamProvider only yields when tripsStream updates. Renaming a bike path might NOT trigger tripsStream update.
+        // We should force refresh tripsStreamProvider or better myBikePathsFutureProvider if used.
+        // tripsStreamProvider re-fetches bike paths on every trip stream event.
+        // But if we only rename a bike path, the TRIP stream doesn't change, so tripsStreamProvider might not emit safely.
+        // We need to invalidate tripsStreamProvider or make it depend on something that changes.
+        ref.invalidate(tripsStreamProvider);
+      }
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, String id, bool isTrip) async {
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, String id, bool isTrip) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Activity'),
-        content: const Text('Are you sure you want to delete this activity? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this activity? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

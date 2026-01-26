@@ -24,7 +24,9 @@ class StreetSegment {
       'formattedAddress': formattedAddress,
       'lat': lat,
       'lng': lng,
-      'polyline': polyline?.map((p) => {'lat': p.latitude, 'lng': p.longitude}).toList(),
+      'polyline': polyline
+          ?.map((p) => {'lat': p.latitude, 'lng': p.longitude})
+          .toList(),
     };
   }
 
@@ -35,7 +37,9 @@ class StreetSegment {
       formattedAddress: map['formattedAddress'] ?? '',
       lat: (map['lat'] as num).toDouble(),
       lng: (map['lng'] as num).toDouble(),
-      polyline: (map['polyline'] as List?)?.map((p) => LatLng(p['lat'], p['lng'])).toList(),
+      polyline: (map['polyline'] as List?)
+          ?.map((p) => LatLng(p['lat'], p['lng']))
+          .toList(),
     );
   }
 }

@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bike_path.dart';
 import '../models/obstacle.dart';
@@ -17,10 +16,7 @@ class ContributeService {
   Future<void> addBikePath(BikePath path) async {
     if (_userId == null) throw Exception('User not authenticated');
 
-    await _firestore
-        .collection('bike_paths')
-        .doc(path.id)
-        .set(path.toMap());
+    await _firestore.collection('bike_paths').doc(path.id).set(path.toMap());
   }
 
   Future<List<BikePath>> getMyBikePaths() async {
@@ -31,10 +27,9 @@ class ContributeService {
         .where('userId', isEqualTo: _userId)
         .get();
 
-    final paths = snapshot.docs
-        .map((doc) => BikePath.fromMap(doc.data()))
-        .toList();
-    
+    final paths =
+        snapshot.docs.map((doc) => BikePath.fromMap(doc.data())).toList();
+
     // Sort in memory to avoid Firestore Composite Index requirement
     paths.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return paths;
@@ -47,26 +42,27 @@ class ContributeService {
         .limit(100)
         .get();
 
-    return snapshot.docs
-        .map((doc) => BikePath.fromMap(doc.data()))
-        .toList();
+    return snapshot.docs.map((doc) => BikePath.fromMap(doc.data())).toList();
   }
 
   Future<void> deleteBikePath(String pathId) async {
     if (_userId == null) return;
     await _firestore.collection('bike_paths').doc(pathId).delete();
   }
-  
+
   Future<void> renameBikePath(String pathId, String newName) async {
     if (_userId == null) return;
-    await _firestore.collection('bike_paths').doc(pathId).update({'name': newName});
+    await _firestore
+        .collection('bike_paths')
+        .doc(pathId)
+        .update({'name': newName});
   }
 
   // --- Path Quality Reports ---
 
   Future<void> addPathQualityReport(PathQualityReport report) async {
     if (_userId == null) throw Exception('User not authenticated');
-    
+
     await _firestore
         .collection('path_quality_reports')
         .doc(report.id)
@@ -104,7 +100,7 @@ class ContributeService {
         .map((doc) => PathQualityReport.fromMap(doc.data()))
         .toList();
   }
-  
+
   Future<void> deletePathQualityReport(String reportId) async {
     if (_userId == null) return;
     // Ensure ownership check on server side (security rules) or client side check if strict
@@ -130,15 +126,14 @@ class ContributeService {
         .where('userId', isEqualTo: _userId)
         .get();
 
-    final obstacles = snapshot.docs
-        .map((doc) => Obstacle.fromMap(doc.data()))
-        .toList();
-        
+    final obstacles =
+        snapshot.docs.map((doc) => Obstacle.fromMap(doc.data())).toList();
+
     // Sort in memory
     obstacles.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return obstacles;
   }
-  
+
   Future<List<Obstacle>> getPublicObstacles() async {
     final snapshot = await _firestore
         .collection('obstacles')
@@ -146,9 +141,7 @@ class ContributeService {
         .limit(100)
         .get();
 
-    return snapshot.docs
-        .map((doc) => Obstacle.fromMap(doc.data()))
-        .toList();
+    return snapshot.docs.map((doc) => Obstacle.fromMap(doc.data())).toList();
   }
 
   Future<void> deleteObstacle(String obstacleId) async {

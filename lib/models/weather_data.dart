@@ -1,7 +1,7 @@
 class WeatherData {
-  final String conditions;  // e.g., "Clear", "Rain", "Clouds"
+  final String conditions; // e.g., "Clear", "Rain", "Clouds"
   final double temperature; // Celsius
-  final double windSpeed;   // m/s
+  final double windSpeed; // m/s
   final DateTime queriedAt;
 
   WeatherData({
@@ -25,7 +25,7 @@ class WeatherData {
       conditions: json['conditions'] as String? ?? 'Unknown',
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
       windSpeed: (json['windSpeed'] as num?)?.toDouble() ?? 0.0,
-      queriedAt: json['queriedAt'] != null 
+      queriedAt: json['queriedAt'] != null
           ? DateTime.parse(json['queriedAt'] as String)
           : DateTime.now(),
     );

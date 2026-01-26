@@ -23,7 +23,7 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
   Widget build(BuildContext context) {
     final tripService = ref.read(tripServiceProvider);
     final points = tripService.points;
-    
+
     // Get pending candidates (not yet handled)
     final allCandidates = tripService.candidates;
     final pendingCandidates = allCandidates
@@ -31,9 +31,8 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
         .toList();
 
     // Convert points to polyline
-    final polylineCoordinates = points
-        .map((p) => LatLng(p.latitude, p.longitude))
-        .toList();
+    final polylineCoordinates =
+        points.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
     if (pendingCandidates.isEmpty) {
       return Scaffold(
@@ -44,7 +43,8 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
             children: [
               const Icon(Icons.check_circle, size: 64, color: Colors.green),
               const SizedBox(height: 16),
-              const Text('All issues reviewed!', style: TextStyle(fontSize: 18)),
+              const Text('All issues reviewed!',
+                  style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               Text(
                 '${_handledCandidates.values.where((c) => c.status == CandidateStatus.confirmed).length} confirmed, '
@@ -66,16 +66,19 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
       );
     }
 
-    final candidate = pendingCandidates[_currentIndex.clamp(0, pendingCandidates.length - 1)];
+    final candidate =
+        pendingCandidates[_currentIndex.clamp(0, pendingCandidates.length - 1)];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Review Issues (${_currentIndex + 1}/${pendingCandidates.length})'),
+        title: Text(
+            'Review Issues (${_currentIndex + 1}/${pendingCandidates.length})'),
         actions: [
           IconButton(
             icon: const Icon(Icons.skip_next),
-            onPressed: pendingCandidates.length > 1 
-                ? () => setState(() => _currentIndex = (_currentIndex + 1) % pendingCandidates.length)
+            onPressed: pendingCandidates.length > 1
+                ? () => setState(() => _currentIndex =
+                    (_currentIndex + 1) % pendingCandidates.length)
                 : null,
             tooltip: 'Skip to next',
           ),
@@ -104,10 +107,12 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
                 Marker(
                   markerId: MarkerId(candidate.id),
                   position: LatLng(candidate.lat, candidate.lng),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueRed),
                   infoWindow: InfoWindow(
                     title: 'Potential Issue',
-                    snippet: 'Confidence: ${(candidate.confidenceScore * 100).toInt()}%',
+                    snippet:
+                        'Confidence: ${(candidate.confidenceScore * 100).toInt()}%',
                   ),
                 ),
                 // Other pending obstacles as smaller markers
@@ -116,7 +121,8 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
                     .map((c) => Marker(
                           markerId: MarkerId(c.id),
                           position: LatLng(c.lat, c.lng),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                          icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueOrange),
                           alpha: 0.6,
                         )),
               },
@@ -124,13 +130,18 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
               myLocationEnabled: false,
             ),
           ),
-          
+
           // Details card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 8, offset: const Offset(0, -2))],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(30),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2))
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,43 +150,54 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
                 // Header with timestamp
                 Row(
                   children: [
-                    const Icon(Icons.warning_amber, color: Colors.orange, size: 28),
+                    const Icon(Icons.warning_amber,
+                        color: Colors.orange, size: 28),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Potential Road Issue', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const Text('Potential Road Issue',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
                           Text(
                             'Detected at ${candidate.timestamp.toString().split('.')[0]}',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 12),
                           ),
                         ],
                       ),
                     ),
                     // Confidence badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getConfidenceColor(candidate.confidenceScore),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${(candidate.confidenceScore * 100).toInt()}%',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Sensor data summary
                 Text(
                   'Sensor: Accel ${_formatSensorData(candidate.sensorSnapshot)} | Gyro ${_formatSensorData(candidate.gyroSnapshot)}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontFamily: 'monospace'),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                      fontFamily: 'monospace'),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Action buttons
                 Row(
                   children: [
@@ -231,15 +253,17 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
       _handledCandidates[candidate.id] = rejected;
       _currentIndex = 0; // Reset to first pending
     });
-    
+
     // Persist to Firestore
     final tripService = ref.read(tripServiceProvider);
     if (tripService.currentTripId != null) {
-      tripService.updateCandidateStatus(tripService.lastSavedTrip?.id ?? '', rejected);
+      tripService.updateCandidateStatus(
+          tripService.lastSavedTrip?.id ?? '', rejected);
     }
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Issue rejected'), backgroundColor: Colors.orange),
+      const SnackBar(
+          content: Text('Issue rejected'), backgroundColor: Colors.orange),
     );
   }
 
@@ -254,22 +278,25 @@ class _ReviewIssuesPageState extends ConsumerState<ReviewIssuesPage> {
             _handledCandidates[candidate.id] = updatedCandidate;
             _currentIndex = 0;
           });
-          
+
           // Save obstacle to community
           final user = ref.read(authStateProvider).value;
           if (user == null) return;
-          
+
           await ref.read(contributeServiceProvider).addObstacle(obstacle);
-          
+
           // Persist candidate update
           final tripService = ref.read(tripServiceProvider);
           if (tripService.lastSavedTrip != null) {
-            await tripService.updateCandidateStatus(tripService.lastSavedTrip!.id, updatedCandidate);
+            await tripService.updateCandidateStatus(
+                tripService.lastSavedTrip!.id, updatedCandidate);
           }
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Issue confirmed and saved!'), backgroundColor: Colors.green),
+              const SnackBar(
+                  content: Text('Issue confirmed and saved!'),
+                  backgroundColor: Colors.green),
             );
           }
         },
@@ -282,7 +309,8 @@ class _ConfirmObstacleDialog extends StatefulWidget {
   final CandidateIssue candidate;
   final Function(Obstacle, CandidateIssue) onConfirm;
 
-  const _ConfirmObstacleDialog({required this.candidate, required this.onConfirm});
+  const _ConfirmObstacleDialog(
+      {required this.candidate, required this.onConfirm});
 
   @override
   State<_ConfirmObstacleDialog> createState() => _ConfirmObstacleDialogState();
@@ -337,38 +365,38 @@ class _ConfirmObstacleDialogState extends State<_ConfirmObstacleDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        Consumer(
-            builder: (context, ref, child) {
-              return ElevatedButton(
-                onPressed: () {
-                  final user = ref.read(authStateProvider).value;
-                  if (user == null) return;
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        Consumer(builder: (context, ref, child) {
+          return ElevatedButton(
+            onPressed: () {
+              final user = ref.read(authStateProvider).value;
+              if (user == null) return;
 
-                  final obstacle = Obstacle(
-                    id: const Uuid().v4(),
-                    userId: user.uid,
-                    lat: widget.candidate.lat,
-                    lng: widget.candidate.lng,
-                    obstacleType: _type,
-                    severity: _severity,
-                    publishable: _publishable,
-                    createdAt: DateTime.now(),
-                  );
-
-                  final updatedCandidate = widget.candidate.copyWith(
-                    status: CandidateStatus.confirmed,
-                    obstacleType: _type,
-                    severity: _severity,
-                  );
-
-                  widget.onConfirm(obstacle, updatedCandidate);
-                  Navigator.pop(context);
-                },
-                child: const Text('Confirm'),
+              final obstacle = Obstacle(
+                id: const Uuid().v4(),
+                userId: user.uid,
+                lat: widget.candidate.lat,
+                lng: widget.candidate.lng,
+                obstacleType: _type,
+                severity: _severity,
+                publishable: _publishable,
+                createdAt: DateTime.now(),
               );
-            }
-        ),
+
+              final updatedCandidate = widget.candidate.copyWith(
+                status: CandidateStatus.confirmed,
+                obstacleType: _type,
+                severity: _severity,
+              );
+
+              widget.onConfirm(obstacle, updatedCandidate);
+              Navigator.pop(context);
+            },
+            child: const Text('Confirm'),
+          );
+        }),
       ],
     );
   }

@@ -7,27 +7,27 @@ import 'package:geolocator/geolocator.dart';
 class BikingDetectorService extends ChangeNotifier {
   // Speed thresholds (m/s)
   static const double _bikingSpeedThresholdMs = 2.2; // ~8 km/h to start
-  static const double _stopSpeedThresholdMs = 0.8;    // ~3 km/h to stop
-  
+  static const double _stopSpeedThresholdMs = 0.8; // ~3 km/h to stop
+
   // Debounce durations
   static const Duration _startDebounce = Duration(seconds: 10);
   static const Duration _stopDebounce = Duration(seconds: 30);
 
   bool _isMonitoring = false;
   bool get isMonitoring => _isMonitoring;
-  
+
   bool _isBikingDetected = false;
   bool get isBikingDetected => _isBikingDetected;
-  
+
   double _currentSpeed = 0.0;
   double get currentSpeed => _currentSpeed;
-  
+
   // Callbacks for biking start/stop events
   VoidCallback? onBikingStarted;
   VoidCallback? onBikingStopped;
 
   StreamSubscription<Position>? _positionSub;
-  
+
   // Debounce state
   DateTime? _aboveThresholdSince;
   DateTime? _belowThresholdSince;
@@ -89,7 +89,7 @@ class BikingDetectorService extends ChangeNotifier {
       if (_currentSpeed >= _bikingSpeedThresholdMs) {
         _aboveThresholdSince ??= now;
         _belowThresholdSince = null;
-        
+
         if (now.difference(_aboveThresholdSince!) >= _startDebounce) {
           _isBikingDetected = true;
           _aboveThresholdSince = null;
@@ -104,7 +104,7 @@ class BikingDetectorService extends ChangeNotifier {
       if (_currentSpeed < _stopSpeedThresholdMs) {
         _belowThresholdSince ??= now;
         _aboveThresholdSince = null;
-        
+
         if (now.difference(_belowThresholdSince!) >= _stopDebounce) {
           _isBikingDetected = false;
           _belowThresholdSince = null;

@@ -1,12 +1,7 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'obstacle.dart';
 
-enum CandidateStatus {
-  pending,
-  confirmed,
-  rejected
-}
+enum CandidateStatus { pending, confirmed, rejected }
 
 class CandidateIssue {
   final String id;
@@ -114,4 +109,3 @@ class CandidateIssue {
     );
   }
 }
-

@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PathRateStatus {
@@ -62,10 +61,8 @@ class PathQualityReport {
       lat: (map['lat'] as num).toDouble(),
       lng: (map['lng'] as num).toDouble(),
       routeContext: map['routeContext'],
-      status: PathRateStatus.values.firstWhere(
-        (e) => e.name == map['status'], 
-        orElse: () => PathRateStatus.medium
-      ),
+      status: PathRateStatus.values.firstWhere((e) => e.name == map['status'],
+          orElse: () => PathRateStatus.medium),
       publishable: map['publishable'] ?? false,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
     );

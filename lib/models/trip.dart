@@ -97,13 +97,13 @@ class Trip {
       averageSpeed: (json['averageSpeed'] as num).toDouble(),
       isPublishable: json['isPublishable'] as bool? ?? false,
       isAutoDetected: json['isAutoDetected'] as bool? ?? false,
-      weatherData: json['weatherData'] != null 
+      weatherData: json['weatherData'] != null
           ? WeatherData.fromJson(json['weatherData'] as Map<String, dynamic>)
           : null,
       confirmedObstacleIds: (json['confirmedObstacleIds'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ?? [],
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
     );
   }
 }
-
