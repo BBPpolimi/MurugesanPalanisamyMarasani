@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bike_path.dart';
 import '../models/obstacle.dart';
 import '../models/path_quality_report.dart';
+import 'path_group_service.dart';
 
 class ContributeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,7 +17,63 @@ class ContributeService {
   Future<void> addBikePath(BikePath path) async {
     if (_userId == null) throw Exception('User not authenticated');
 
-    await _firestore.collection('bike_paths').doc(path.id).set(path.toMap());
+    // Compute normalized key for future merging
+    final normalizedKey = _computeNormalizedKey(path.segments, path.city);
+    final pathWithKey = path.copyWith(normalizedKey: normalizedKey);
+
+    await _firestore.collection('bike_paths').doc(path.id).set(pathWithKey.toMap());
+  }
+
+  Future<void> updateBikePath(BikePath path) async {
+    if (_userId == null) throw Exception('User not authenticated');
+    if (path.userId != _userId) throw Exception('Not authorized to update this path');
+
+    final updated = path.copyWith(
+      updatedAt: DateTime.now(),
+      version: path.version + 1,
+    );
+
+    await _firestore.collection('bike_paths').doc(path.id).update(updated.toMap());
+  }
+
+  Future<void> togglePublish(String pathId, bool publish) async {
+    if (_userId == null) throw Exception('User not authenticated');
+
+    final updateData = <String, dynamic>{
+      'visibility': publish ? PathVisibility.published.name : PathVisibility.private.name,
+      'publishable': publish, // Legacy field
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    
+    if (publish) {
+      updateData['publishedAt'] = FieldValue.serverTimestamp();
+    }
+
+    await _firestore.collection('bike_paths').doc(pathId).update(updateData);
+
+    // Trigger client-side merge if publishing (Spark plan - no Cloud Functions)
+    if (publish) {
+      try {
+        final doc = await _firestore.collection('bike_paths').doc(pathId).get();
+        final normalizedKey = doc.data()?['normalizedKey'];
+        if (normalizedKey != null) {
+          final pathGroupService = PathGroupService();
+          await pathGroupService.recomputePathGroupLocally(normalizedKey);
+        }
+      } catch (e) {
+        // Log but don't fail - merge is best-effort
+        print('Merge error: $e');
+      }
+    }
+  }
+
+  Future<void> softDeleteBikePath(String pathId) async {
+    if (_userId == null) throw Exception('User not authenticated');
+
+    await _firestore.collection('bike_paths').doc(pathId).update({
+      'deleted': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<List<BikePath>> getMyBikePaths() async {
@@ -25,6 +82,7 @@ class ContributeService {
     final snapshot = await _firestore
         .collection('bike_paths')
         .where('userId', isEqualTo: _userId)
+        .where('deleted', isEqualTo: false)
         .get();
 
     final paths =
@@ -35,10 +93,47 @@ class ContributeService {
     return paths;
   }
 
+  Future<List<BikePath>> getMyDraftPaths() async {
+    if (_userId == null) return [];
+
+    final snapshot = await _firestore
+        .collection('bike_paths')
+        .where('userId', isEqualTo: _userId)
+        .where('deleted', isEqualTo: false)
+        .get();
+
+    final paths = snapshot.docs
+        .map((doc) => BikePath.fromMap(doc.data()))
+        .where((p) => p.visibility == PathVisibility.private)
+        .toList();
+
+    paths.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return paths;
+  }
+
+  Future<List<BikePath>> getMyPublishedPaths() async {
+    if (_userId == null) return [];
+
+    final snapshot = await _firestore
+        .collection('bike_paths')
+        .where('userId', isEqualTo: _userId)
+        .where('deleted', isEqualTo: false)
+        .get();
+
+    final paths = snapshot.docs
+        .map((doc) => BikePath.fromMap(doc.data()))
+        .where((p) => p.visibility == PathVisibility.published)
+        .toList();
+
+    paths.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return paths;
+  }
+
   Future<List<BikePath>> getPublicBikePaths() async {
     final snapshot = await _firestore
         .collection('bike_paths')
-        .where('publishable', isEqualTo: true)
+        .where('visibility', isEqualTo: PathVisibility.published.name)
+        .where('deleted', isEqualTo: false)
         .limit(100)
         .get();
 
@@ -55,7 +150,19 @@ class ContributeService {
     await _firestore
         .collection('bike_paths')
         .doc(pathId)
-        .update({'name': newName});
+        .update({
+          'name': newName,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+  }
+
+  /// Compute a normalized key from street segments for future merging
+  String _computeNormalizedKey(List<dynamic> segments, String? city) {
+    final streetNames = segments
+        .map((s) => s.streetName.toLowerCase().trim())
+        .join('|');
+    final cityPart = (city ?? 'unknown').toLowerCase().trim();
+    return '$cityPart:$streetNames'.hashCode.toString();
   }
 
   // --- Path Quality Reports ---

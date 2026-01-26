@@ -5,10 +5,14 @@ import 'record_trip_page.dart';
 import 'trip_history_page.dart';
 import 'trip_details_page.dart';
 import 'contribute_page.dart';
+import 'my_contributions_page.dart';
+import 'admin_review_page.dart';
+import 'public_paths_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
 import '../models/bike_path.dart';
+import '../models/app_user.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -83,6 +87,7 @@ class DashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authService = ref.watch(authServiceProvider);
     final user = ref.watch(authStateProvider).value;
+    final userWithRole = ref.watch(userWithRoleProvider);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -109,6 +114,23 @@ class DashboardPage extends ConsumerWidget {
                     ],
                   ),
                 ),
+                // Admin button (only for admins)
+                userWithRole.when(
+                  data: (u) => u?.isAdmin == true
+                      ? IconButton(
+                          icon: const Icon(Icons.admin_panel_settings),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminReviewPage()),
+                            );
+                          },
+                          tooltip: 'Admin Panel',
+                        )
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
                 IconButton(
                   icon: const Icon(Icons.logout),
                   onPressed: () async {
@@ -123,6 +145,45 @@ class DashboardPage extends ConsumerWidget {
               'Ride smart. Ride safe.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            
+            // Quick Actions - My Contributions
+            if (user?.isGuest != true) ...[
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.blue.shade50,
+                child: ListTile(
+                  leading: const Icon(Icons.folder_special, color: Colors.blue),
+                  title: const Text('My Contributions'),
+                  subtitle: const Text('View and manage your bike paths'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyContributionsPage()),
+                    );
+                  },
+                ),
+              ),
+            ],
+            
+            // Browse Public Paths - available to all users
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.green.shade50,
+              child: ListTile(
+                leading: const Icon(Icons.explore, color: Colors.green),
+                title: const Text('Browse Community Paths'),
+                subtitle: const Text('Explore bike paths shared by the community'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PublicPathsPage()),
+                  );
+                },
+              ),
+            ),
+            
             if (user?.isGuest == true) ...[
               Container(
                 margin: const EdgeInsets.only(top: 16),

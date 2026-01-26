@@ -6,6 +6,8 @@ class StreetSegment {
   final String formattedAddress;
   final double lat;
   final double lng;
+  final int order; // Position in path (0-indexed)
+  final String? placeId; // Google Places ID for normalization
   final List<LatLng>? polyline; // Optional geometry
 
   StreetSegment({
@@ -14,6 +16,8 @@ class StreetSegment {
     required this.formattedAddress,
     required this.lat,
     required this.lng,
+    this.order = 0,
+    this.placeId,
     this.polyline,
   });
 
@@ -24,6 +28,8 @@ class StreetSegment {
       'formattedAddress': formattedAddress,
       'lat': lat,
       'lng': lng,
+      'order': order,
+      'placeId': placeId,
       'polyline': polyline
           ?.map((p) => {'lat': p.latitude, 'lng': p.longitude})
           .toList(),
@@ -37,9 +43,33 @@ class StreetSegment {
       formattedAddress: map['formattedAddress'] ?? '',
       lat: (map['lat'] as num).toDouble(),
       lng: (map['lng'] as num).toDouble(),
+      order: (map['order'] as num?)?.toInt() ?? 0,
+      placeId: map['placeId'],
       polyline: (map['polyline'] as List?)
           ?.map((p) => LatLng(p['lat'], p['lng']))
           .toList(),
+    );
+  }
+
+  StreetSegment copyWith({
+    String? id,
+    String? streetName,
+    String? formattedAddress,
+    double? lat,
+    double? lng,
+    int? order,
+    String? placeId,
+    List<LatLng>? polyline,
+  }) {
+    return StreetSegment(
+      id: id ?? this.id,
+      streetName: streetName ?? this.streetName,
+      formattedAddress: formattedAddress ?? this.formattedAddress,
+      lat: lat ?? this.lat,
+      lng: lng ?? this.lng,
+      order: order ?? this.order,
+      placeId: placeId ?? this.placeId,
+      polyline: polyline ?? this.polyline,
     );
   }
 }

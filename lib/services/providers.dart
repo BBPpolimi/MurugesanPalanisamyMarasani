@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_user.dart';
+import '../models/path_group.dart';
+import 'admin_service.dart';
 import 'auth_service.dart';
 import 'biking_detector_service.dart';
 import 'contribute_service.dart';
@@ -10,6 +12,8 @@ import 'route_scoring_service.dart';
 import 'trip_repository.dart';
 import 'trip_service.dart';
 import 'weather_service.dart';
+import 'path_group_service.dart';
+import 'route_search_service.dart';
 
 import '../models/trip.dart';
 import '../models/bike_path.dart';
@@ -20,6 +24,9 @@ export 'geocoding_service.dart';
 export 'route_scoring_service.dart';
 export 'trip_repository.dart';
 export 'trip_service.dart';
+export 'admin_service.dart';
+export 'path_group_service.dart';
+export 'route_search_service.dart';
 
 final tripRepositoryProvider = Provider<TripRepository>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -106,6 +113,12 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
   return authService.authStateChanges;
 });
 
+// Provider for user with role (async fetch)
+final userWithRoleProvider = FutureProvider<AppUser?>((ref) async {
+  final authService = ref.watch(authServiceProvider);
+  return await authService.getCurrentUserWithRole();
+});
+
 final directionsServiceProvider =
     Provider<DirectionsService>((ref) => DirectionsService());
 
@@ -117,6 +130,20 @@ final contributeServiceProvider = Provider<ContributeService>((ref) {
   authState.whenData((user) {
     if (user != null) {
       service.initialize(user.uid);
+    }
+  });
+
+  return service;
+});
+
+final adminServiceProvider = Provider<AdminService>((ref) {
+  final authState = ref.watch(userWithRoleProvider);
+  final service = AdminService();
+
+  // Initialize with user ID and admin status
+  authState.whenData((user) {
+    if (user != null) {
+      service.initialize(user.uid, user.isAdmin);
     }
   });
 
@@ -140,11 +167,57 @@ final routeScoringServiceProvider = Provider<RouteScoringService>((ref) {
 });
 
 final myBikePathsFutureProvider = FutureProvider<List<dynamic>>((ref) async {
-  // dynamic to avoid circular import if BikePath not exported here, but imports are usually fine or propagated. Actually BikePath might need import.
-  // Actually, providers.dart exports contribute_service, which imports BikePath. So BikePath is available transitively?
-  // No, I need to import BikePath in providers OR just use dynamic temporarily.
-  // Better to use strongly typed if possible.
   final service = ref.watch(contributeServiceProvider);
   final paths = await service.getMyBikePaths();
   return paths;
 });
+
+final myDraftPathsProvider = FutureProvider<List<BikePath>>((ref) async {
+  final service = ref.watch(contributeServiceProvider);
+  return await service.getMyDraftPaths();
+});
+
+final myPublishedPathsProvider = FutureProvider<List<BikePath>>((ref) async {
+  final service = ref.watch(contributeServiceProvider);
+  return await service.getMyPublishedPaths();
+});
+
+final publicBikePathsProvider = FutureProvider<List<BikePath>>((ref) async {
+  final service = ref.watch(contributeServiceProvider);
+  return await service.getPublicBikePaths();
+});
+
+// ============ Path Groups (Merged View) ============
+
+final pathGroupServiceProvider = Provider<PathGroupService>((ref) {
+  return PathGroupService();
+});
+
+final pathGroupsProvider = FutureProvider<List<PathGroup>>((ref) async {
+  final service = ref.watch(pathGroupServiceProvider);
+  return await service.getPathGroups();
+});
+
+final pathGroupsByCity = FutureProvider.family<List<PathGroup>, String>((ref, city) async {
+  final service = ref.watch(pathGroupServiceProvider);
+  return await service.getPathGroups(city: city);
+});
+
+// ============ Route Search ============
+
+final routeSearchServiceProvider = Provider<RouteSearchService>((ref) {
+  return RouteSearchService();
+});
+
+/// Provider for route search results
+/// Usage: ref.read(routeSearchProvider({'originLat': x, 'originLng': y, 'destLat': z, 'destLng': w}))
+final routeSearchProvider = FutureProvider.family<RouteSearchResult, Map<String, double>>((ref, params) async {
+  final service = ref.watch(routeSearchServiceProvider);
+  return await service.searchRoutes(
+    originLat: params['originLat']!,
+    originLng: params['originLng']!,
+    destLat: params['destLat']!,
+    destLng: params['destLng']!,
+  );
+});
+
