@@ -184,10 +184,14 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
           if (_statusFilter != PathStatusFilter.all || _cityFilter.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Row(
+              child: Wrap( // Changed Row to Wrap to prevent overflow
+                spacing: 4,
+                runSpacing: 4,
                 children: [
-                  const Icon(Icons.filter_alt, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
+                   const Padding( // Wrapped in padding/container to align if needed, or just keep as is
+                     padding: EdgeInsets.only(top: 4),
+                     child: Icon(Icons.filter_alt, size: 16, color: Colors.grey),
+                   ),
                   const Text('Active filters: ', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   if (_statusFilter != PathStatusFilter.all)
                     Chip(
@@ -199,7 +203,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
                       visualDensity: VisualDensity.compact,
                     ),
                   if (_cityFilter.isNotEmpty) ...[
-                    const SizedBox(width: 4),
+                    // const SizedBox(width: 4) handled by wrap spacing
                     Chip(
                       label: Text(_cityFilter, style: const TextStyle(fontSize: 11)),
                       deleteIcon: const Icon(Icons.close, size: 14),
@@ -318,30 +322,44 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
                 ),
               ],
               const SizedBox(height: 8),
-              Row(
+              Wrap( // Changed Row to Wrap to prevent overflow on small screens
+                spacing: 16,
+                runSpacing: 4,
                 children: [
-                  Icon(Icons.route, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${path.segments.length} segments',
-                    style: TextStyle(color: Colors.grey.shade600),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.route, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${path.segments.length} segments',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${(path.distanceMeters / 1000).toStringAsFixed(2)} km',
-                    style: TextStyle(color: Colors.grey.shade600),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.straighten, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(path.distanceMeters / 1000).toStringAsFixed(2)} km',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
-                  if (path.obstacles.isNotEmpty) ...[
-                    const SizedBox(width: 16),
-                    Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${path.obstacles.length} obstacles',
-                      style: TextStyle(color: Colors.orange.shade600),
+                  if (path.obstacles.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade600),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${path.obstacles.length} obstacles',
+                          style: TextStyle(color: Colors.orange.shade600),
+                        ),
+                      ],
                     ),
-                  ],
                 ],
               ),
               // Tags

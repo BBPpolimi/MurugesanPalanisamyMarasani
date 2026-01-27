@@ -392,7 +392,7 @@ class _RouteSearchPageState extends ConsumerState<RouteSearchPage> {
 
   Widget _buildRouteList() {
     return Container(
-      height: 240,
+      height: 280, // Increased from 240 to prevent overflow
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -440,7 +440,7 @@ class _RouteSearchPageState extends ConsumerState<RouteSearchPage> {
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 280,
+                    width: 300, // Increased width slightly
                     margin:
                         const EdgeInsets.only(right: 16, bottom: 16, top: 4),
                     padding: const EdgeInsets.all(16),
