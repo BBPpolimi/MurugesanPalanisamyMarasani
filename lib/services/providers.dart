@@ -140,10 +140,10 @@ final adminServiceProvider = Provider<AdminService>((ref) {
   final authState = ref.watch(userWithRoleProvider);
   final service = AdminService();
 
-  // Initialize with user ID and admin status
+  // Initialize with user ID, admin status, and email
   authState.whenData((user) {
     if (user != null) {
-      service.initialize(user.uid, user.isAdmin);
+      service.initialize(user.uid, user.isAdmin, email: user.email);
     }
   });
 

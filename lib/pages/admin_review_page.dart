@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/bike_path.dart';
 import '../services/providers.dart';
+import 'admin_users_tab.dart';
+import 'admin_audit_log_tab.dart';
 
 /// Admin page for reviewing and moderating contributions
 class AdminReviewPage extends ConsumerStatefulWidget {
@@ -21,7 +23,7 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadData();
   }
 
@@ -58,9 +60,12 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
         title: const Text('Admin Review'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           tabs: [
             Tab(text: 'All (${_allPaths.length})'),
             Tab(text: 'Flagged (${_flaggedPaths.length})'),
+            const Tab(text: 'Users'),
+            const Tab(text: 'Audit Log'),
           ],
         ),
         actions: [
@@ -71,15 +76,19 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildPathList(_allPaths, showFlagOption: true),
-                _buildPathList(_flaggedPaths, showUnflagOption: true),
-              ],
-            ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildPathList(_allPaths, showFlagOption: true),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _buildPathList(_flaggedPaths, showUnflagOption: true),
+          const AdminUsersTab(),
+          const AdminAuditLogTab(),
+        ],
+      ),
     );
   }
 
@@ -176,9 +185,17 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
                 const Divider(height: 24),
                 
                 // Admin Actions
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
                   children: [
+                    // Block User button
+                    TextButton.icon(
+                      onPressed: () => _showBlockUserDialog(path.userId),
+                      icon: const Icon(Icons.block, color: Colors.purple),
+                      label: const Text('Block User', style: TextStyle(color: Colors.purple)),
+                    ),
                     if (showFlagOption && path.visibility != PathVisibility.flagged)
                       TextButton.icon(
                         onPressed: () => _showFlagDialog(path),
@@ -266,6 +283,72 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
         ],
       ),
     );
+  }
+
+  void _showBlockUserDialog(String userId) {
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Block User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Block user: ${userId.substring(0, 12)}...'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                hintText: 'Why is this user being blocked?',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _blockUser(userId, reasonController.text);
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Block'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _blockUser(String userId, String reason) async {
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please provide a reason')),
+      );
+      return;
+    }
+
+    try {
+      await ref.read(adminServiceProvider).blockUser(userId, reason);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User blocked')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _flagPath(BikePath path, String reason) async {

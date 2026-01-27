@@ -82,14 +82,26 @@ class AuthService {
     );
     await result.user?.updateDisplayName(name);
     
-    // Create user document in Firestore
+    // Create user document in Firestore (only for NEW users)
     if (result.user != null) {
-      await _firestore.collection('users').doc(result.user!.uid).set({
-        'email': email,
-        'displayName': name,
-        'role': 'user',
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      final userDoc = _firestore.collection('users').doc(result.user!.uid);
+      final docSnapshot = await userDoc.get();
+      
+      if (!docSnapshot.exists) {
+        // New user - set default role
+        await userDoc.set({
+          'email': email,
+          'displayName': name,
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Existing user - only update email/displayName, preserve role
+        await userDoc.update({
+          'email': email,
+          'displayName': name,
+        });
+      }
     }
     
     return await _userFromFirebase(result.user);
@@ -109,14 +121,26 @@ class AuthService {
 
       final result = await _auth.signInWithCredential(credential);
       
-      // Ensure user document exists
+      // Ensure user document exists (but DON'T overwrite role for existing users)
       if (result.user != null) {
-        await _firestore.collection('users').doc(result.user!.uid).set({
-          'email': result.user!.email,
-          'displayName': result.user!.displayName,
-          'role': 'user',
-          'createdAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        final userDoc = _firestore.collection('users').doc(result.user!.uid);
+        final docSnapshot = await userDoc.get();
+        
+        if (!docSnapshot.exists) {
+          // New user - set default role
+          await userDoc.set({
+            'email': result.user!.email,
+            'displayName': result.user!.displayName,
+            'role': 'user',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          // Existing user - only update email/displayName, preserve role
+          await userDoc.update({
+            'email': result.user!.email,
+            'displayName': result.user!.displayName,
+          });
+        }
       }
       
       return await _userFromFirebase(result.user);

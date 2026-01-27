@@ -8,6 +8,11 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
     
+    // Helper function to check if user is blocked
+    function isBlocked() {
+      return exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid));
+    }
+    
     // Validate bike path data
     function validateBikePath(data) {
       return data.segments.size() >= 2
@@ -40,8 +45,9 @@ service cloud.firestore {
       // Admin read: admins can read all paths
       allow read: if isAdmin();
       
-      // Create: authenticated users can create their own paths
+      // Create: authenticated, non-blocked users can create their own paths
       allow create: if request.auth != null
+                   && !isBlocked()
                    && request.auth.uid == request.resource.data.userId
                    && validateBikePath(request.resource.data);
       
@@ -68,8 +74,9 @@ service cloud.firestore {
       // Admin can read all
       allow read: if isAdmin();
       
-      // Create: authenticated users only
+      // Create: authenticated, non-blocked users only
       allow create: if request.auth != null 
+                   && !isBlocked()
                    && request.auth.uid == request.resource.data.userId;
       
       // Update/Delete: owner or admin
@@ -86,8 +93,9 @@ service cloud.firestore {
       // Admin can read all
       allow read: if isAdmin();
       
-      // Create: authenticated users only
+      // Create: authenticated, non-blocked users only
       allow create: if request.auth != null 
+                   && !isBlocked()
                    && request.auth.uid == request.resource.data.userId;
       
       // Update/Delete: owner or admin
@@ -99,8 +107,9 @@ service cloud.firestore {
     match /trips/{tripId} {
       // Owner can read/write their own trips
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      // Create: authenticated users only
+      // Create: authenticated, non-blocked users only
       allow create: if request.auth != null 
+                   && !isBlocked()
                    && request.auth.uid == request.resource.data.userId;
     }
     
@@ -144,8 +153,9 @@ service cloud.firestore {
       // Admin can read all
       allow read: if isAdmin();
       
-      // Create: authenticated users
+      // Create: authenticated, non-blocked users
       allow create: if request.auth != null 
+                   && !isBlocked()
                    && request.auth.uid == request.resource.data.ownerUid;
       
       // Update: owner or admin
@@ -156,6 +166,25 @@ service cloud.firestore {
       // Delete: admin only
       allow delete: if isAdmin();
     }
+    
+    // ============ ADMIN MODERATION ============
+    
+    // Blocked users collection - admin only
+    match /blockedUsers/{userId} {
+      // Only admins can read blocked users list
+      allow read: if isAdmin();
+      // Only admins can block/unblock users
+      allow write: if isAdmin();
+    }
+    
+    // Audit logs collection - admin only
+    match /auditLogs/{logId} {
+      // Only admins can read audit logs
+      allow read: if isAdmin();
+      // Only admins can write audit logs (via admin service)
+      allow create: if isAdmin();
+      // Audit logs cannot be updated or deleted
+      allow update, delete: if false;
+    }
   }
 }
-

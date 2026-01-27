@@ -12,10 +12,20 @@ class ContributeService {
     _userId = userId;
   }
 
+  /// Check if the current user is blocked (throws if blocked)
+  Future<void> _checkNotBlocked() async {
+    if (_userId == null) return;
+    final doc = await _firestore.collection('blockedUsers').doc(_userId).get();
+    if (doc.exists) {
+      throw Exception('Your account has been suspended. Please contact support.');
+    }
+  }
+
   // --- Bike Paths (Manual Mode) ---
 
   Future<void> addBikePath(BikePath path) async {
     if (_userId == null) throw Exception('User not authenticated');
+    await _checkNotBlocked();
 
     // Compute normalized key for future merging
     final normalizedKey = _computeNormalizedKey(path.segments, path.city);
@@ -169,6 +179,7 @@ class ContributeService {
 
   Future<void> addPathQualityReport(PathQualityReport report) async {
     if (_userId == null) throw Exception('User not authenticated');
+    await _checkNotBlocked();
 
     await _firestore
         .collection('path_quality_reports')
@@ -218,6 +229,7 @@ class ContributeService {
 
   Future<void> addObstacle(Obstacle obstacle) async {
     if (_userId == null) throw Exception('User not authenticated');
+    await _checkNotBlocked();
 
     await _firestore
         .collection('obstacles')
