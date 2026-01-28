@@ -55,9 +55,33 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Review'),
+    // Security Check: Ensure user is admin
+    final userAsync = ref.watch(userWithRoleProvider);
+    
+    return userAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
+      data: (user) {
+        if (user?.isAdmin != true) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Admin Review')),
+            body: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.gpp_bad, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text('Access Denied', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('You do not have permission to view this page.'),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Admin Review'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -89,6 +113,8 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           const AdminAuditLogTab(),
         ],
       ),
+    );
+      },
     );
   }
 
