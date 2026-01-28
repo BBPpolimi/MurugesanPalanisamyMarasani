@@ -114,20 +114,25 @@ class DashboardPage extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Admin button (only for admins)
+                // Admin button (ONLY for verified admins - triple check)
                 userWithRole.when(
-                  data: (u) => u?.isAdmin == true
-                      ? IconButton(
-                          icon: const Icon(Icons.admin_panel_settings),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AdminReviewPage()),
-                            );
-                          },
-                          tooltip: 'Admin Panel',
-                        )
-                      : const SizedBox.shrink(),
+                  data: (u) {
+                    // Triple-layer security: must be logged in, not guest, and explicitly admin
+                    if (u == null) return const SizedBox.shrink();
+                    if (u.isGuest) return const SizedBox.shrink();
+                    if (!u.isAdmin) return const SizedBox.shrink();
+                    // Only show for verified admins - RED icon for visibility
+                    return IconButton(
+                      icon: const Icon(Icons.admin_panel_settings, color: Colors.red, size: 28),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AdminReviewPage()),
+                        );
+                      },
+                      tooltip: 'Admin Panel',
+                    );
+                  },
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
@@ -185,31 +190,116 @@ class DashboardPage extends ConsumerWidget {
             ),
             
             if (user?.isGuest == true) ...[
+              // Enhanced Guest Welcome Card
               Container(
                 margin: const EdgeInsets.only(top: 16),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade600, Colors.purple.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-                child: const Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: Colors.amber),
-                    SizedBox(width: 12),
-                    Expanded(
-                        child: Text(
-                            'You are using the app as a guest. Some features are disabled.')),
+                    const Row(
+                      children: [
+                        Icon(Icons.waving_hand, color: Colors.white, size: 28),
+                        SizedBox(width: 12),
+                        Text(
+                          'Welcome, Explorer!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'You\'re browsing as a guest. Here\'s what you can do:',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    const SizedBox(height: 12),
+                    _GuestFeatureRow(icon: Icons.map, text: 'Browse community bike paths'),
+                    _GuestFeatureRow(icon: Icons.search, text: 'Search for routes'),
+                    _GuestFeatureRow(icon: Icons.explore, text: 'Explore the map'),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '🔓 Unlock more with an account:',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '• Track your rides & statistics\n• Contribute bike paths\n• Report obstacles & quality\n• Save favorite routes',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // Navigate to auth/sign-up
+                          Navigator.pushReplacementNamed(context, '/auth');
+                        },
+                        icon: const Icon(Icons.person_add),
+                        label: const Text('Create Free Account'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  'Statistics are not available for guests.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
+              // Stats preview (locked)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: Colors.grey.shade500),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Your ride statistics will appear here after signing up',
+                        style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                       ),
+                    ),
+                  ],
                 ),
               ),
             ] else ...[
@@ -495,6 +585,27 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GuestFeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _GuestFeatureRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 10),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        ],
       ),
     );
   }

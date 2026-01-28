@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/bike_path.dart';
 import '../services/providers.dart';
+import '../utils/polyline_utils.dart';
 import 'bike_path_form_page.dart';
 
 class ContributionDetailsPage extends ConsumerStatefulWidget {
@@ -45,18 +46,28 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
       ));
     }
 
-    // Build polyline (simplified - just connect the points)
-    if (path.segments.length >= 2) {
+    // Build polyline - use decoded mapPreviewPolyline if available, else fallback to segments
+    List<LatLng> polylinePoints;
+    if (path.mapPreviewPolyline != null && path.mapPreviewPolyline!.isNotEmpty) {
+      // Decode the actual route polyline
+      polylinePoints = PolylineUtils.decodePolyline(path.mapPreviewPolyline!);
+    } else {
+      // Fallback to segment points (straight lines)
+      polylinePoints = path.segments.map((s) => LatLng(s.lat, s.lng)).toList();
+    }
+
+    if (polylinePoints.length >= 2) {
       _polylines = {
         Polyline(
           polylineId: const PolylineId('path_preview'),
-          points: path.segments.map((s) => LatLng(s.lat, s.lng)).toList(),
+          points: polylinePoints,
           color: Colors.blueAccent,
           width: 4,
         ),
       };
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

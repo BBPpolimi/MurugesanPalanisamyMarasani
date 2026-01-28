@@ -8,12 +8,16 @@ import 'biking_detector_service.dart';
 import 'contribute_service.dart';
 import 'directions_service.dart';
 import 'geocoding_service.dart';
+import 'merge_scheduler.dart';
 import 'route_scoring_service.dart';
+import 'stats_service.dart';
 import 'trip_repository.dart';
 import 'trip_service.dart';
 import 'weather_service.dart';
 import 'path_group_service.dart';
 import 'route_search_service.dart';
+
+
 
 import '../models/trip.dart';
 import '../models/bike_path.dart';
@@ -113,10 +117,21 @@ final authStateProvider = StreamProvider<AppUser?>((ref) {
   return authService.authStateChanges;
 });
 
-// Provider for user with role (async fetch)
+// Provider for user with role (async fetch - re-fetches when auth state changes)
 final userWithRoleProvider = FutureProvider<AppUser?>((ref) async {
+  // Watch auth state to trigger re-fetch on login/logout
+  final authState = ref.watch(authStateProvider);
   final authService = ref.watch(authServiceProvider);
-  return await authService.getCurrentUserWithRole();
+  
+  // Wait for auth state to resolve, then fetch full user with role
+  return authState.maybeWhen(
+    data: (user) async {
+      if (user == null) return null;
+      // Fetch fresh user with role from Firestore
+      return await authService.getCurrentUserWithRole();
+    },
+    orElse: () => null,
+  ) ?? Future.value(null);
 });
 
 final directionsServiceProvider =
@@ -148,6 +163,21 @@ final adminServiceProvider = Provider<AdminService>((ref) {
   });
 
   return service;
+});
+
+final mergeSchedulerProvider = Provider<MergeScheduler>((ref) => MergeScheduler());
+
+final statsServiceProvider = Provider<StatsService>((ref) => StatsService());
+
+final userStatsProvider = FutureProvider<UserStats>((ref) async {
+  final authState = ref.watch(userWithRoleProvider);
+  return authState.maybeWhen(
+    data: (user) async {
+      if (user == null || user.isGuest) return UserStats.empty();
+      return ref.read(statsServiceProvider).getStats(user.uid);
+    },
+    orElse: () async => UserStats.empty(),
+  );
 });
 
 final geocodingServiceProvider =

@@ -53,6 +53,30 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     }
   }
 
+  Future<void> _runMergeJob() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Starting merge job...')),
+    );
+    
+    try {
+      final mergeScheduler = ref.read(mergeSchedulerProvider);
+      final processed = await mergeScheduler.runMergeJob();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Merge complete: $processed groups processed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Merge failed: $e')),
+        );
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     // Security Check: Ensure user is admin
@@ -62,7 +86,10 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (user) {
-        if (user?.isAdmin != true) {
+        // Triple-layer security: must be logged in, not guest, and explicitly admin
+        final isAuthorized = user != null && !user.isGuest && user.isAdmin;
+        
+        if (!isAuthorized) {
           return Scaffold(
             appBar: AppBar(title: const Text('Admin Review')),
             body: const Center(
@@ -73,6 +100,8 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
                   SizedBox(height: 16),
                   Text('Access Denied', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   Text('You do not have permission to view this page.'),
+                  SizedBox(height: 8),
+                  Text('Only administrators can access this area.', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
@@ -93,6 +122,11 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.merge_type),
+            onPressed: () => _runMergeJob(),
+            tooltip: 'Run Merge Job',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,

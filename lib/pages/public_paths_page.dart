@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/bike_path.dart';
 import '../models/path_quality_report.dart';
 import '../services/providers.dart';
+import '../utils/polyline_utils.dart';
 import 'contribution_details_page.dart';
 
 /// Filter options for public path browsing
@@ -482,12 +483,42 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
       }
     }
 
+    // Build polylines for each path
+    final polylines = <Polyline>{};
+    for (final path in paths) {
+      if (path.mapPreviewPolyline != null && path.mapPreviewPolyline!.isNotEmpty) {
+        final points = PolylineUtils.decodePolyline(path.mapPreviewPolyline!);
+        if (points.length >= 2) {
+          polylines.add(Polyline(
+            polylineId: PolylineId('path_${path.id}'),
+            points: points,
+            color: switch (path.status) {
+              PathRateStatus.optimal => Colors.green,
+              PathRateStatus.medium => Colors.blue,
+              PathRateStatus.sufficient => Colors.orange,
+              PathRateStatus.requiresMaintenance => Colors.red,
+            },
+            width: 4,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ContributionDetailsPage(path: path, isPublicView: true),
+                ),
+              );
+            },
+          ));
+        }
+      }
+    }
+
     return GoogleMap(
       initialCameraPosition: CameraPosition(
         target: LatLng(avgLat, avgLng),
         zoom: 12,
       ),
       markers: markers,
+      polylines: polylines,
       onMapCreated: (controller) => _mapController = controller,
       myLocationEnabled: false,
       myLocationButtonEnabled: false,
