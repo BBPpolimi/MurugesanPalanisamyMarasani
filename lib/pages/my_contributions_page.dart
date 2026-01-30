@@ -35,6 +35,10 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage>
         title: const Text('My Contributions'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.black.withOpacity(0.7),
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
           tabs: const [
             Tab(text: 'Drafts/Private'),
             Tab(text: 'Published'),
@@ -240,7 +244,7 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage>
         break;
       case PathVisibility.private:
       default:
-        color = Colors.grey;
+        color = Colors.blue;
         label = 'Private';
         icon = Icons.lock;
     }
