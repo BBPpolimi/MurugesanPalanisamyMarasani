@@ -9,7 +9,7 @@ import '../models/obstacle.dart';
 import '../models/trip.dart';
 import '../models/gps_point.dart';
 import '../models/bike_path.dart';
-import '../models/route_candidate.dart';
+
 import 'bike_path_form_page.dart';
 
 class ContributePage extends ConsumerStatefulWidget {
@@ -29,9 +29,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   // Defines the currently selected point on the map for reporting
   LatLng? _selectedLocation;
 
-  // Search State
-  bool _isSearching = false;
-  GeocodingResult? _searchResult;
+
 
   @override
   void initState() {
@@ -83,125 +81,9 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     });
   }
 
-  // Updated search to support picking from candidates (simulated suggestions)
-  Future<void> _handleSearch(String query) async {
-    if (query.isEmpty) return;
 
-    setState(() => _isSearching = true);
-
-    // In a real implementation with Places API, we would get autocomplete suggestions here.
-    // With native geocoder, we just get a precise match or a list of matches.
-    final result =
-        await ref.read(geocodingServiceProvider).searchAddress(query);
-
-    setState(() => _isSearching = false);
-
-    if (result != null) {
-      _selectSearchResult(result);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Address not found.')));
-      }
-    }
-  }
-
-  void _selectSearchResult(GeocodingResult result) async {
-    // 1. Update State with marker immediately
-    setState(() {
-      _searchResult = result;
-      _selectedTrip = null; // Clear selected trip
-      _selectedLocation = result.location;
-
-      _markers = {};
-      _markers.add(Marker(
-        markerId: const MarkerId('searched_location'),
-        position: result.location,
-        infoWindow: InfoWindow(title: result.formattedAddress),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
-      ));
-
-      // Default to point zoom first
-      _polylines = {};
-    });
-
-    // 2. Calculate Navigation Route (Navigation Map)
-    // Get current location to start navigation from
-    Position? currentPos;
-    try {
-      currentPos = await Geolocator.getCurrentPosition();
-    } catch (_) {
-      // Permission might be denied or service disabled
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Could not get current location for navigation.')));
-      return;
-    }
-
-    final directionsService = ref.read(directionsServiceProvider);
-
-    // 3. Try Bicycling Mode
-    RouteCandidate? directions = await directionsService.getDirections(
-      origin: LatLng(currentPos.latitude, currentPos.longitude),
-      destination: result.location,
-      mode: 'bicycling',
-    );
-
-    bool isBikePath = true;
-
-    // 4. Fallback to Driving if no bike route found
-    if (directions == null) {
-      isBikePath = false;
-      directions = await directionsService.getDirections(
-        origin: LatLng(currentPos.latitude, currentPos.longitude),
-        destination: result.location,
-        mode: 'driving',
-      );
-    }
-
-    if (mounted && directions != null) {
-      setState(() {
-        // Add Route Polyline
-        _polylines.add(Polyline(
-          polylineId: const PolylineId('navigation_route'),
-          points: directions!.polylinePoints,
-          color: isBikePath
-              ? Colors.blue
-              : Colors.grey, // Blue for bike, Grey for road
-          width: 5,
-        ));
-      });
-
-      // Show Message
-      final msg = isBikePath
-          ? 'Access via Cycle Path found!'
-          : 'No dedicated bike path available. Showing road route.';
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
-        backgroundColor: isBikePath ? Colors.green : Colors.orange,
-        duration: const Duration(seconds: 4),
-      ));
-
-      // Zoom to fit route
-      _mapController
-          ?.animateCamera(CameraUpdate.newLatLngBounds(directions.bounds, 50));
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not find a route to this location.')));
-    }
-  }
 
   void _onMapTap(LatLng position) {
-    if (_searchResult != null) {
-      // In search mode, any tap updates location or opens dialog
-      setState(() {
-        _selectedLocation = position;
-      });
-      _showReportOptions(position);
-      return;
-    }
-
     if (_selectedTrip == null) return;
 
     // Snap logic: Find closest point on the route
@@ -273,7 +155,6 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   void _selectTrip(Trip trip) {
     setState(() {
       _selectedTrip = trip;
-      _searchResult = null; // Clear search
       _polylines = {
         Polyline(
             polylineId: PolylineId(trip.id),
@@ -303,10 +184,8 @@ class _ContributePageState extends ConsumerState<ContributePage> {
   void _clearSelection() {
     setState(() {
       _selectedTrip = null;
-      _searchResult = null;
       _polylines = {};
       _selectedLocation = null;
-      _markers.removeWhere((m) => m.markerId.value == 'searched_location');
     });
   }
 
@@ -348,46 +227,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     );
   }
 
-  void _showSearchDialog() {
-    // Show a full screen search page
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Search Street'),
-        ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter street name (e.g. Main St, Boston)',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {}, // Triggered by submitted
-                  ),
-                ),
-                onSubmitted: (val) {
-                  Navigator.pop(context);
-                  _handleSearch(val);
-                },
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('Tip: Include city name for better results'),
-            )
-          ],
-        ),
-      );
-    }));
-  }
+
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedTrip == null && _searchResult == null) {
+    if (_selectedTrip == null) {
       return _buildTripList();
     } else {
       return _buildMap();
@@ -420,19 +264,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
             ),
           ),
 
-          // Quick Report
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.blue.shade50,
-            child: ListTile(
-              leading: const Icon(Icons.search, color: Colors.blue),
-              title: const Text('Quick Report by Address'),
-              subtitle: const Text('Locate a specific spot to report quality'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: _showSearchDialog,
-            ),
-          ),
-          const Divider(height: 1),
+
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Align(
@@ -549,8 +381,6 @@ class _ContributePageState extends ConsumerState<ContributePage> {
     if (_selectedTrip != null && _selectedTrip!.points.isNotEmpty) {
       initialPos = LatLng(_selectedTrip!.points.first.latitude,
           _selectedTrip!.points.first.longitude);
-    } else if (_searchResult != null) {
-      initialPos = _searchResult!.location;
     }
 
     return Scaffold(
@@ -559,8 +389,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: _clearSelection,
         ),
-        title:
-            Text(_searchResult != null ? 'Tap to Rate' : 'Tap Route to Report'),
+        title: const Text('Tap Route to Report'),
       ),
       body: Stack(
         children: [
@@ -575,44 +404,10 @@ class _ContributePageState extends ConsumerState<ContributePage> {
               _mapController = controller;
               if (_selectedTrip != null && _selectedTrip!.points.isNotEmpty) {
                 controller.animateCamera(CameraUpdate.newLatLng(initialPos));
-              } else if (_searchResult != null) {
-                controller
-                    .animateCamera(CameraUpdate.newLatLngZoom(initialPos, 16));
-                // Try to bounds zoom if viewport exists
-                // With native geocoder this is usually null, so we just zoom to point.
-                if (_searchResult!.viewport != null) {
-                  controller.animateCamera(CameraUpdate.newLatLngBounds(
-                      _searchResult!.viewport!, 50));
-                }
               }
             },
             onTap: _onMapTap,
           ),
-          if (_searchResult != null)
-            Positioned(
-              bottom: 40,
-              left: 16,
-              right: 16,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_searchResult!.formattedAddress,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () =>
-                            _showPathQualityForm(_searchResult!.location),
-                        child: const Text('Rate This Location'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           if (_selectedTrip != null)
             Positioned(
               bottom: 80,
@@ -625,7 +420,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                 },
               ),
             ),
-          if (_isSearching) const Center(child: CircularProgressIndicator()),
+
         ],
       ),
     );
