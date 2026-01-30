@@ -349,6 +349,59 @@ class DashboardPage extends ConsumerWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          // New Stats Row: Ride Time and Avg Speed
+                          Builder(
+                            builder: (context) {
+                              // Calculate stats from TRIPs only (manual paths have no duration)
+                              final tripsOnly = trips.whereType<Trip>().toList();
+                              
+                              final totalDuration = tripsOnly.fold<Duration>(
+                                Duration.zero, 
+                                (sum, t) => sum + t.duration
+                              );
+                              
+                              final totalTripDistance = tripsOnly.fold<double>(
+                                0, 
+                                (sum, t) => sum + t.distanceMeters
+                              );
+                              
+                              // Avg speed = Total Distance (km) / Total Time (h)
+                              double avgSpeedKmh = 0.0;
+                              if (totalDuration.inSeconds > 0) {
+                                final hours = totalDuration.inSeconds / 3600.0;
+                                final km = totalTripDistance / 1000.0;
+                                avgSpeedKmh = km / hours;
+                              }
+
+                              String formatDuration(Duration d) {
+                                if (d.inHours > 0) {
+                                  return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+                                }
+                                return '${d.inMinutes}m';
+                              }
+
+                              return Row(
+                                children: [
+                                  _StatCard(
+                                    label: 'Ride Time',
+                                    value: formatDuration(totalDuration),
+                                    icon: Icons.timer,
+                                    cardColor: Colors.purple.shade50,
+                                    iconColor: Colors.purple,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _StatCard(
+                                    label: 'Avg Speed',
+                                    value: '${avgSpeedKmh.toStringAsFixed(1)} km/h',
+                                    icon: Icons.speed,
+                                    cardColor: Colors.orange.shade50,
+                                    iconColor: Colors.orange,
+                                  ),
+                                ],
+                              );
+                            }
+                          ),
                           const SizedBox(height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -553,20 +606,24 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-
   final VoidCallback? onTap;
+  final Color? cardColor;
+  final Color? iconColor;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
     this.onTap,
+    this.cardColor,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Card(
+        color: cardColor,
         clipBehavior: Clip.hardEdge,
         child: InkWell(
           onTap: onTap,
@@ -574,7 +631,7 @@ class _StatCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Icon(icon, size: 32, color: Colors.green),
+                Icon(icon, size: 32, color: iconColor ?? Colors.green),
                 const SizedBox(height: 8),
                 Text(
                   value,
