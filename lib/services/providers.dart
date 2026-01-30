@@ -16,6 +16,9 @@ import 'trip_service.dart';
 import 'weather_service.dart';
 import 'path_group_service.dart';
 import 'route_search_service.dart';
+import 'path_service.dart';
+import 'contribution_service.dart' as contribution;
+import 'merge_service.dart';
 
 
 
@@ -190,6 +193,25 @@ final bikingDetectorServiceProvider =
 
 final weatherServiceProvider =
     Provider<WeatherService>((ref) => WeatherService());
+
+// --- New RDD-compliant services ---
+
+final pathServiceProvider = Provider<PathService>((ref) => PathService());
+
+final mergeServiceProvider = Provider<MergeService>((ref) => MergeService());
+
+final contributionServiceProvider = Provider<contribution.ContributionService>((ref) {
+  final authState = ref.watch(authStateProvider);
+  final service = contribution.ContributionService();
+
+  authState.whenData((user) {
+    if (user != null) {
+      service.initialize(user.uid);
+    }
+  });
+
+  return service;
+});
 
 final routeScoringServiceProvider = Provider<RouteScoringService>((ref) {
   final contributeService = ref.watch(contributeServiceProvider);

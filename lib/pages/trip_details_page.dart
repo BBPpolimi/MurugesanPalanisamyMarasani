@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/trip.dart';
+import '../models/contribution.dart';
 import '../services/providers.dart';
 
 class TripDetailsPage extends ConsumerStatefulWidget {
@@ -14,12 +15,29 @@ class TripDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
-  late bool _isPublishable;
+  Contribution? _contribution;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _isPublishable = widget.trip.isPublishable;
+    _loadContribution();
+  }
+
+  Future<void> _loadContribution() async {
+    if (widget.trip.contributionId != null) {
+      final contribution = await ref
+          .read(contributionServiceProvider)
+          .getContribution(widget.trip.contributionId!);
+      if (mounted) {
+        setState(() {
+          _contribution = contribution;
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -77,15 +95,19 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
       appBar: AppBar(
         title: Text(trip.name ?? 'Trip Details'),
         actions: [
-          // Publishable toggle in app bar
-          IconButton(
-            icon: Icon(
-              _isPublishable ? Icons.public : Icons.public_off,
-              color: _isPublishable ? Colors.green : Colors.grey,
+          if (_contribution != null)
+            IconButton(
+              icon: Icon(
+                _contribution!.state == ContributionState.published
+                    ? Icons.public
+                    : Icons.public_off,
+                color: _contribution!.state == ContributionState.published
+                    ? Colors.green
+                    : Colors.grey,
+              ),
+              tooltip: _getContributionStateTooltip(_contribution!.state),
+              onPressed: () => _showContributionActions(),
             ),
-            tooltip: _isPublishable ? 'Published to community' : 'Private trip',
-            onPressed: _togglePublishable,
-          ),
         ],
       ),
       body: Column(
@@ -136,11 +158,8 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                         if (trip.isAutoDetected)
                           _buildBadge(
                               'Auto-detected', Colors.blue, Icons.auto_awesome),
-                        _buildBadge(
-                          _isPublishable ? 'Public' : 'Private',
-                          _isPublishable ? Colors.green : Colors.grey,
-                          _isPublishable ? Icons.public : Icons.lock,
-                        ),
+                        if (_contribution != null)
+                          _buildContributionStateBadge(_contribution!),
                         if (trip.weatherData != null)
                           _buildBadge(
                             '${trip.weatherData!.conditions} ${trip.weatherData!.temperature.toStringAsFixed(0)}°C',
@@ -220,19 +239,14 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
                       ),
                     ],
 
-                    // Publish toggle
+                    // Contribution section
                     const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Share with Community'),
-                      subtitle: Text(
-                        _isPublishable
-                            ? 'This trip is visible to other users'
-                            : 'Only you can see this trip',
-                      ),
-                      value: _isPublishable,
-                      onChanged: (val) => _togglePublishable(),
-                      activeColor: Colors.green,
-                    ),
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (_contribution != null)
+                      _buildContributionCard(_contribution!)
+                    else
+                      _buildNoContributionMessage(),
                   ],
                 ),
               ),
@@ -241,6 +255,240 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildContributionCard(Contribution contribution) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.route, color: Colors.purple),
+                const SizedBox(width: 8),
+                const Text('Linked Contribution',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                _buildContributionStateBadge(contribution),
+              ],
+            ),
+            const Divider(),
+            Text('Status: ${contribution.statusRating.name}'),
+            Text('Obstacles: ${contribution.obstacles.length}'),
+            const SizedBox(height: 12),
+            if (contribution.state == ContributionState.pendingConfirmation)
+              FilledButton.icon(
+                onPressed: _confirmContribution,
+                icon: const Icon(Icons.check),
+                label: const Text('Confirm & Edit'),
+              )
+            else if (contribution.state == ContributionState.privateSaved)
+              FilledButton.icon(
+                onPressed: _publishContribution,
+                icon: const Icon(Icons.public),
+                label: const Text('Publish to Community'),
+              )
+            else if (contribution.state == ContributionState.published)
+              OutlinedButton.icon(
+                onPressed: _unpublishContribution,
+                icon: const Icon(Icons.public_off),
+                label: const Text('Make Private'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoContributionMessage() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.grey.shade600),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'No contribution linked. This trip is for personal records only.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContributionStateBadge(Contribution contribution) {
+    Color color;
+    String text;
+    IconData icon;
+
+    switch (contribution.state) {
+      case ContributionState.pendingConfirmation:
+        color = Colors.orange;
+        text = 'Pending';
+        icon = Icons.hourglass_empty;
+        break;
+      case ContributionState.privateSaved:
+        color = Colors.grey;
+        text = 'Private';
+        icon = Icons.lock;
+        break;
+      case ContributionState.published:
+        color = Colors.green;
+        text = 'Published';
+        icon = Icons.public;
+        break;
+      default:
+        color = Colors.grey;
+        text = contribution.state.name;
+        icon = Icons.help_outline;
+    }
+
+    return _buildBadge(text, color, icon);
+  }
+
+  String _getContributionStateTooltip(ContributionState state) {
+    switch (state) {
+      case ContributionState.pendingConfirmation:
+        return 'Pending confirmation';
+      case ContributionState.privateSaved:
+        return 'Private (not published)';
+      case ContributionState.published:
+        return 'Published to community';
+      default:
+        return state.name;
+    }
+  }
+
+  Future<void> _showContributionActions() async {
+    if (_contribution == null) return;
+
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Contribution'),
+              onTap: () {
+                Navigator.pop(ctx);
+                // TODO: Navigate to contribution edit page
+              },
+            ),
+            if (_contribution!.state == ContributionState.pendingConfirmation)
+              ListTile(
+                leading: const Icon(Icons.check),
+                title: const Text('Confirm Contribution'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmContribution();
+                },
+              ),
+            if (_contribution!.state == ContributionState.privateSaved)
+              ListTile(
+                leading: const Icon(Icons.public),
+                title: const Text('Publish to Community'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _publishContribution();
+                },
+              ),
+            if (_contribution!.state == ContributionState.published)
+              ListTile(
+                leading: const Icon(Icons.public_off),
+                title: const Text('Make Private'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _unpublishContribution();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmContribution() async {
+    if (_contribution == null) return;
+
+    try {
+      await ref
+          .read(contributionServiceProvider)
+          .confirmContribution(_contribution!.id);
+      _loadContribution();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contribution confirmed!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _publishContribution() async {
+    if (_contribution == null) return;
+
+    try {
+      await ref
+          .read(contributionServiceProvider)
+          .publishContribution(_contribution!.id);
+      _loadContribution();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contribution published to community!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _unpublishContribution() async {
+    if (_contribution == null) return;
+
+    try {
+      await ref
+          .read(contributionServiceProvider)
+          .unpublishContribution(_contribution!.id);
+      _loadContribution();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contribution is now private'),
+            backgroundColor: Colors.grey,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Widget _buildBadge(String text, Color color, IconData icon) {
@@ -295,35 +543,6 @@ class _TripDetailsPageState extends ConsumerState<TripDetailsPage> {
 
   String _formatDateTime(DateTime dt) {
     return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _togglePublishable() async {
-    final newValue = !_isPublishable;
-    setState(() => _isPublishable = newValue);
-
-    try {
-      await ref
-          .read(tripServiceProvider)
-          .setTripPublishable(widget.trip.id, newValue);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(newValue ? 'Trip is now public!' : 'Trip is now private'),
-            backgroundColor: newValue ? Colors.green : Colors.grey,
-          ),
-        );
-      }
-    } catch (e) {
-      // Revert on error
-      setState(() => _isPublishable = !newValue);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error updating: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   LatLngBounds _boundsFromLatLngList(List<LatLng> list) {

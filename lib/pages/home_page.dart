@@ -8,6 +8,7 @@ import 'contribute_page.dart';
 import 'my_contributions_page.dart';
 import 'admin_review_page.dart';
 import 'public_paths_page.dart';
+import 'bike_path_form_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
@@ -496,11 +497,15 @@ class DashboardPage extends ConsumerWidget {
                                               TripDetailsPage(trip: item),
                                         ),
                                       );
-                                    } else {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Manual Path details not implemented yet.')));
+                                    } else if (item is BikePath) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BikePathFormPage(
+                                            existingPath: item,
+                                          ),
+                                        ),
+                                      );
                                     }
                                   },
                                 ),

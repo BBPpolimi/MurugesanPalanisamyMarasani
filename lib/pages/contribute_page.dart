@@ -276,28 +276,15 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           Expanded(
             child: Consumer(
               builder: (context, ref, child) {
+                // tripsStreamProvider already includes both trips and bikePaths
                 final tripsAsync = ref.watch(tripsStreamProvider);
-                final pathsAsync = ref.watch(myBikePathsFutureProvider);
 
                 return tripsAsync.when(
-                  data: (trips) {
-                    return pathsAsync.when(
-                      data: (paths) {
-                        // Merge and Sort
-                        final combined = <dynamic>[...trips, ...paths];
-                        combined.sort((a, b) {
-                          DateTime timeA = a is Trip
-                              ? a.startTime
-                              : (a as BikePath).createdAt;
-                          DateTime timeB = b is Trip
-                              ? b.startTime
-                              : (b as BikePath).createdAt;
-                          return timeB.compareTo(timeA); // Descending
-                        });
-
-                        if (combined.isEmpty) {
-                          return const Center(
-                              child: Text('No recorded trips or paths found.'));
+                  data: (combined) {
+                    // Already sorted by date in provider
+                    if (combined.isEmpty) {
+                      return const Center(
+                          child: Text('No recorded trips or paths found.'));
                         }
 
                         return ListView.builder(
@@ -335,7 +322,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                                 child: ListTile(
                                   leading: const Icon(Icons.edit_road,
                                       color: Colors.green),
-                                  title: Text(
+                                  title: Text(item.name ?? 
                                       item.createdAt.toString().split('.')[0]),
                                   subtitle: Text(
                                       'Manual Path • ${(item.distanceMeters / 1000).toStringAsFixed(2)} km'),
@@ -345,10 +332,15 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                                       labelStyle: TextStyle(
                                           color: Colors.white, fontSize: 10)),
                                   onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'Viewing manual paths is coming soon!')));
+                                    // Navigate to BikePathFormPage for viewing/editing
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BikePathFormPage(
+                                          existingPath: item,
+                                        ),
+                                      ),
+                                    );
                                   },
                                 ),
                               );
@@ -356,17 +348,11 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                             return const SizedBox.shrink();
                           },
                         );
-                      },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, s) =>
-                          Center(child: Text('Error loading paths: $e')),
-                    );
                   },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, s) =>
-                      Center(child: Text('Error loading trips: $e')),
+                      Center(child: Text('Error loading data: $e')),
                 );
               },
             ),

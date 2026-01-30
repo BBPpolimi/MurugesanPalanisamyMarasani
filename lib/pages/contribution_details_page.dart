@@ -24,6 +24,7 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  bool _isLoadingRoute = false;
 
   @override
   void initState() {
@@ -31,7 +32,7 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     _buildMapData();
   }
 
-  void _buildMapData() {
+  Future<void> _buildMapData() async {
     final path = widget.path;
     
     // Build markers
@@ -46,25 +47,67 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
       ));
     }
 
-    // Build polyline - use decoded mapPreviewPolyline if available, else fallback to segments
-    List<LatLng> polylinePoints;
+    // Build polyline - use decoded mapPreviewPolyline if available
+    List<LatLng> polylinePoints = [];
+    
     if (path.mapPreviewPolyline != null && path.mapPreviewPolyline!.isNotEmpty) {
-      // Decode the actual route polyline
+      // Decode the stored route polyline
       polylinePoints = PolylineUtils.decodePolyline(path.mapPreviewPolyline!);
-    } else {
-      // Fallback to segment points (straight lines)
-      polylinePoints = path.segments.map((s) => LatLng(s.lat, s.lng)).toList();
+    } else if (path.segments.length >= 2) {
+      // Fetch route dynamically from DirectionsService
+      setState(() => _isLoadingRoute = true);
+      
+      final directionsService = ref.read(directionsServiceProvider);
+      
+      for (int i = 0; i < path.segments.length - 1; i++) {
+        final start = path.segments[i];
+        final end = path.segments[i + 1];
+        
+        try {
+          var directions = await directionsService.getDirections(
+            origin: LatLng(start.lat, start.lng),
+            destination: LatLng(end.lat, end.lng),
+            mode: 'bicycling',
+          );
+          
+          if (directions == null) {
+            directions = await directionsService.getDirections(
+              origin: LatLng(start.lat, start.lng),
+              destination: LatLng(end.lat, end.lng),
+              mode: 'driving',
+            );
+          }
+          
+          if (directions != null) {
+            polylinePoints.addAll(directions.polylinePoints);
+          } else {
+            // Fallback to straight line for this segment
+            polylinePoints.add(LatLng(start.lat, start.lng));
+            polylinePoints.add(LatLng(end.lat, end.lng));
+          }
+        } catch (e) {
+          // Fallback to straight line
+          polylinePoints.add(LatLng(start.lat, start.lng));
+          polylinePoints.add(LatLng(end.lat, end.lng));
+        }
+      }
+      
+      if (mounted) {
+        setState(() => _isLoadingRoute = false);
+      }
     }
 
-    if (polylinePoints.length >= 2) {
-      _polylines = {
-        Polyline(
-          polylineId: const PolylineId('path_preview'),
-          points: polylinePoints,
-          color: Colors.blueAccent,
-          width: 4,
-        ),
-      };
+    if (polylinePoints.length >= 2 && mounted) {
+      setState(() {
+        _polylines = {
+          Polyline(
+            polylineId: const PolylineId('path_preview'),
+            points: polylinePoints,
+            color: Colors.blueAccent,
+            width: 4,
+          ),
+        };
+      });
     }
   }
 
@@ -113,21 +156,42 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
             // Map Preview
             SizedBox(
               height: 250,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: path.segments.isNotEmpty
-                      ? LatLng(path.segments.first.lat, path.segments.first.lng)
-                      : const LatLng(37.7749, -122.4194),
-                  zoom: 13,
-                ),
-                markers: _markers,
-                polylines: _polylines,
-                onMapCreated: (controller) {
-                  _mapController = controller;
-                  _fitBounds();
-                },
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: path.segments.isNotEmpty
+                          ? LatLng(path.segments.first.lat, path.segments.first.lng)
+                          : const LatLng(37.7749, -122.4194),
+                      zoom: 13,
+                    ),
+                    markers: _markers,
+                    polylines: _polylines,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      _fitBounds();
+                    },
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                  ),
+                  if (_isLoadingRoute)
+                    Container(
+                      color: Colors.black26,
+                      child: const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 8),
+                            Text(
+                              'Loading route...',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
 

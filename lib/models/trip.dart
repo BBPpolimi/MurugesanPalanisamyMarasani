@@ -11,7 +11,7 @@ class Trip {
   final double distanceMeters;
   final Duration duration;
   final double averageSpeed;
-  final bool isPublishable; // Whether trip is published to community
+  final String? contributionId; // Link to generated Contribution (if any)
   final bool isAutoDetected; // Whether trip was auto-started
   final WeatherData? weatherData; // Optional weather at trip time
   final List<String> confirmedObstacleIds; // IDs of confirmed obstacles
@@ -26,7 +26,7 @@ class Trip {
     required this.distanceMeters,
     required this.duration,
     required this.averageSpeed,
-    this.isPublishable = false,
+    this.contributionId,
     this.isAutoDetected = false,
     this.weatherData,
     this.confirmedObstacleIds = const [],
@@ -42,7 +42,7 @@ class Trip {
     double? distanceMeters,
     Duration? duration,
     double? averageSpeed,
-    bool? isPublishable,
+    String? contributionId,
     bool? isAutoDetected,
     WeatherData? weatherData,
     List<String>? confirmedObstacleIds,
@@ -57,7 +57,7 @@ class Trip {
       distanceMeters: distanceMeters ?? this.distanceMeters,
       duration: duration ?? this.duration,
       averageSpeed: averageSpeed ?? this.averageSpeed,
-      isPublishable: isPublishable ?? this.isPublishable,
+      contributionId: contributionId ?? this.contributionId,
       isAutoDetected: isAutoDetected ?? this.isAutoDetected,
       weatherData: weatherData ?? this.weatherData,
       confirmedObstacleIds: confirmedObstacleIds ?? this.confirmedObstacleIds,
@@ -75,7 +75,7 @@ class Trip {
       'distanceMeters': distanceMeters,
       'duration': duration.inMicroseconds, // Storing duration as microseconds
       'averageSpeed': averageSpeed,
-      'isPublishable': isPublishable,
+      if (contributionId != null) 'contributionId': contributionId,
       'isAutoDetected': isAutoDetected,
       if (weatherData != null) 'weatherData': weatherData!.toJson(),
       'confirmedObstacleIds': confirmedObstacleIds,
@@ -95,7 +95,7 @@ class Trip {
       distanceMeters: (json['distanceMeters'] as num).toDouble(),
       duration: Duration(microseconds: json['duration'] as int),
       averageSpeed: (json['averageSpeed'] as num).toDouble(),
-      isPublishable: json['isPublishable'] as bool? ?? false,
+      contributionId: json['contributionId'] as String?,
       isAutoDetected: json['isAutoDetected'] as bool? ?? false,
       weatherData: json['weatherData'] != null
           ? WeatherData.fromJson(json['weatherData'] as Map<String, dynamic>)

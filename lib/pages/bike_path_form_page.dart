@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/bike_path.dart';
+import '../utils/polyline_utils.dart';
 import '../models/street_segment.dart';
 import '../models/path_obstacle.dart';
 import '../models/path_tag.dart';
@@ -47,6 +48,7 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   double _totalPathDistance = 0.0;
+  String? _mapPreviewPolyline; // Encoded polyline for map display
 
   bool get _isEditing => widget.existingPath != null;
 
@@ -66,6 +68,7 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
     _status = path.status;
     _selectedTags.addAll(path.tags);
     _obstacles.addAll(path.obstacles);
+    _mapPreviewPolyline = path.mapPreviewPolyline;
   }
 
   @override
@@ -350,6 +353,10 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
     if (mounted) {
       setState(() {
         _totalPathDistance = calculatedDistance;
+        // Encode the full route for storage
+        _mapPreviewPolyline = fullRoutePoints.isNotEmpty 
+            ? PolylineUtils.encodePolyline(fullRoutePoints) 
+            : null;
         _polylines = {
           Polyline(
             polylineId: const PolylineId('full_bike_path'),
@@ -412,6 +419,7 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
       city: _cityController.text.isNotEmpty ? _cityController.text : null,
       version: (widget.existingPath?.version ?? 0) + 1,
       distanceMeters: _totalPathDistance,
+      mapPreviewPolyline: _mapPreviewPolyline, // Include encoded route
       createdAt: widget.existingPath?.createdAt ?? now,
       updatedAt: now,
       publishedAt: _visibility == PathVisibility.published ? now : null,

@@ -11,9 +11,15 @@ import '../models/gps_point.dart';
 import '../models/trip.dart';
 import '../models/trip_state.dart';
 import '../models/weather_data.dart';
+import '../models/contribution.dart';
+import '../models/path_obstacle.dart';
+import '../models/obstacle.dart';
+import '../models/path_quality_report.dart';
 import 'biking_detector_service.dart';
 import 'trip_repository.dart';
 import 'weather_service.dart';
+import 'contribution_service.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TripSummary {
   final double distanceMeters;
@@ -72,6 +78,7 @@ class TripService extends ChangeNotifier {
   final TripRepository _repository;
   final Uuid _uuid = const Uuid();
   final WeatherService _weatherService = WeatherService();
+  ContributionService? _contributionService;
 
   // Biking detector for auto-start/stop
   BikingDetectorService? _bikingDetector;
@@ -91,6 +98,8 @@ class TripService extends ChangeNotifier {
   void initialize(String userId) {
     _userId = userId;
     _repository.initialize(userId);
+    _contributionService = ContributionService();
+    _contributionService!.initialize(userId);
   }
 
   /// Enable/disable auto-detection mode.
@@ -263,8 +272,11 @@ class TripService extends ChangeNotifier {
           midPoint.latitude, midPoint.longitude);
     }
 
-    final trip = Trip(
-      id: _currentTripId ?? _uuid.v4(),
+    final tripId = _currentTripId ?? _uuid.v4();
+
+    // Create trip (initially without contributionId)
+    var trip = Trip(
+      id: tripId,
       userId: _userId ?? '',
       name: tripName,
       startTime: _startTime!,
@@ -277,14 +289,74 @@ class TripService extends ChangeNotifier {
       weatherData: weatherData,
     );
 
+    // Save candidates linked to this trip
+    if (_candidates.isNotEmpty) {
+      await _repository.saveCandidates(tripId, _candidates);
+    }
+
+    // Convert CandidateIssues to PathObstacles for the Contribution
+    final obstacles = _candidates.map((c) {
+      // Map ObstacleType to PathObstacleType
+      PathObstacleType obstacleType;
+      switch (c.obstacleType) {
+        case ObstacleType.pothole:
+          obstacleType = PathObstacleType.pothole;
+          break;
+        case ObstacleType.construction:
+          obstacleType = PathObstacleType.construction;
+          break;
+        case ObstacleType.debris:
+          obstacleType = PathObstacleType.debris;
+          break;
+        default:
+          obstacleType = PathObstacleType.other;
+      }
+      
+      // Map ObstacleSeverity to int (1-5)
+      int severityInt;
+      switch (c.severity) {
+        case ObstacleSeverity.low:
+          severityInt = 2;
+          break;
+        case ObstacleSeverity.medium:
+          severityInt = 3;
+          break;
+        case ObstacleSeverity.high:
+          severityInt = 4;
+          break;
+        default:
+          severityInt = 3;
+      }
+      
+      return PathObstacle(
+        id: c.id,
+        lat: c.lat,
+        lng: c.lng,
+        type: obstacleType,
+        severity: severityInt,
+        createdAt: c.timestamp,
+      );
+    }).toList();
+
+    // Create Contribution (PENDING_CONFIRMATION for automatic trips)
+    Contribution? contribution;
+    if (_contributionService != null && _points.isNotEmpty) {
+      final geometry = _points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+      
+      contribution = await _contributionService!.createAutomaticContribution(
+        tripId: tripId,
+        geometry: geometry,
+        statusRating: PathRateStatus.medium, // Default, user will confirm
+        obstacles: obstacles,
+      );
+
+      // Update trip with contributionId
+      trip = trip.copyWith(contributionId: contribution.id);
+    }
+
     // Save trip
     await _repository.saveTrip(trip);
     lastSavedTrip = trip;
-
-    // Save candidates linked to this trip
-    if (_candidates.isNotEmpty) {
-      await _repository.saveCandidates(_currentTripId!, _candidates);
-    }
 
     // Reset auto-detected flag
     _isAutoDetectedTrip = false;
@@ -292,7 +364,8 @@ class TripService extends ChangeNotifier {
     _state = TripState.saved;
 
     // If auto-detection was on, go back to monitoring ONLY if no review needed
-    if (_isAutoDetectionEnabled && _candidates.isEmpty) {
+    // NOTE: Now we always have a contribution pending confirmation
+    if (_isAutoDetectionEnabled && _candidates.isEmpty && contribution == null) {
       _state = TripState.autoMonitoring;
       _startAutoMonitoring();
     }
