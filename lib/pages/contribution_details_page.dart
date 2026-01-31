@@ -181,6 +181,34 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
         };
       });
     }
+
+    // Add obstacle markers
+    for (int i = 0; i < contribution.obstacles.length; i++) {
+      final obs = contribution.obstacles[i];
+      if (obs.lat != null && obs.lng != null) {
+        // Determine marker color based on severity
+        final markerHue = obs.severity <= 2 
+            ? BitmapDescriptor.hueGreen 
+            : obs.severity <= 3 
+                ? BitmapDescriptor.hueYellow 
+                : BitmapDescriptor.hueRed;
+        
+        _markers.add(Marker(
+          markerId: MarkerId('obstacle_$i'),
+          position: LatLng(obs.lat!, obs.lng!),
+          infoWindow: InfoWindow(
+            title: obs.type.label,
+            snippet: 'Severity: ${obs.severity}/5${obs.note != null ? '\n${obs.note}' : ''}',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(markerHue),
+        ));
+      }
+    }
+    
+    // Trigger rebuild to show obstacle markers
+    if (mounted && contribution.obstacles.isNotEmpty) {
+      setState(() {});
+    }
   }
 
   @override
@@ -396,6 +424,13 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     else if (_polylines.isNotEmpty) {
       for (var polyline in _polylines) {
         points.addAll(polyline.points);
+      }
+    }
+    
+    // Include obstacle locations in bounds
+    for (final obs in _contribution.obstacles) {
+      if (obs.lat != null && obs.lng != null) {
+        points.add(LatLng(obs.lat!, obs.lng!));
       }
     }
     
