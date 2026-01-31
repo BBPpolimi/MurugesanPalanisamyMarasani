@@ -9,6 +9,7 @@ import 'my_contributions_page.dart';
 import 'admin_review_page.dart';
 import 'public_paths_page.dart';
 import 'bike_path_form_page.dart';
+import 'register_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
@@ -263,8 +264,11 @@ class DashboardPage extends ConsumerWidget {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          // Navigate to auth/sign-up
-                          Navigator.pushReplacementNamed(context, '/auth');
+                          // Navigate to Register page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RegisterPage()),
+                          );
                         },
                         icon: const Icon(Icons.person_add),
                         label: const Text('Create Free Account'),
