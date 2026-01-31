@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -142,6 +144,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
               Expanded(
                 child: DropdownButtonFormField<PathStatusFilter>(
                   value: _statusFilter,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Status',
                     border: OutlineInputBorder(),
@@ -149,7 +152,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
                     isDense: true,
                   ),
                   items: PathStatusFilter.values
-                      .map((f) => DropdownMenuItem(value: f, child: Text(f.label)))
+                      .map((f) => DropdownMenuItem(value: f, child: Text(f.label, overflow: TextOverflow.ellipsis)))
                       .toList(),
                   onChanged: (v) {
                     if (v != null) setState(() => _statusFilter = v);
@@ -522,6 +525,16 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
       onMapCreated: (controller) => _mapController = controller,
       myLocationEnabled: false,
       myLocationButtonEnabled: false,
+      zoomControlsEnabled: true,
+      zoomGesturesEnabled: true,
+      scrollGesturesEnabled: true,
+      rotateGesturesEnabled: true,
+      tiltGesturesEnabled: true,
+      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+        Factory<OneSequenceGestureRecognizer>(
+          () => EagerGestureRecognizer(),
+        ),
+      },
     );
   }
 
