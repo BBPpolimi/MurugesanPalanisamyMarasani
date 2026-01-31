@@ -8,7 +8,7 @@ import '../models/path_quality_report.dart';
 import '../models/obstacle.dart';
 import '../models/trip.dart';
 import '../models/gps_point.dart';
-import '../models/bike_path.dart';
+import '../models/contribution.dart';
 
 import 'bike_path_form_page.dart';
 
@@ -276,7 +276,7 @@ class _ContributePageState extends ConsumerState<ContributePage> {
           Expanded(
             child: Consumer(
               builder: (context, ref, child) {
-                // tripsStreamProvider already includes both trips and bikePaths
+                // tripsStreamProvider already includes both trips and contributions
                 final tripsAsync = ref.watch(tripsStreamProvider);
 
                 return tripsAsync.when(
@@ -292,13 +292,14 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                           itemBuilder: (ctx, index) {
                             final item = combined[index];
                             if (item is Trip) {
+                              // Display trip with a readable name or formatted date
+                              final tripName = 'Trip on ${item.startTime.day}/${item.startTime.month}/${item.startTime.year} at ${item.startTime.hour.toString().padLeft(2, '0')}:${item.startTime.minute.toString().padLeft(2, '0')}';
                               return Card(
                                 margin: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 child: ListTile(
                                   leading: const Icon(Icons.directions_bike),
-                                  title: Text(
-                                      item.startTime.toString().split('.')[0]),
+                                  title: Text(tripName),
                                   subtitle: Text(
                                       '${(item.distanceMeters / 1000).toStringAsFixed(2)} km'),
                                   trailing: TextButton(
@@ -315,29 +316,35 @@ class _ContributePageState extends ConsumerState<ContributePage> {
                                   onTap: () => _selectTrip(item),
                                 ),
                               );
-                            } else if (item is BikePath) {
+                            } else if (item is Contribution) {
+                              // Display contribution with name or formatted date
+                              final displayName = item.name ?? 
+                                  '${item.sourceLabel} - ${item.capturedAt.day}/${item.capturedAt.month}/${item.capturedAt.year}';
+                              final isManual = item.source == ContributionSource.manual;
                               return Card(
                                 margin: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 child: ListTile(
-                                  leading: const Icon(Icons.edit_road,
-                                      color: Colors.green),
-                                  title: Text(item.name ?? 
-                                      item.createdAt.toString().split('.')[0]),
+                                  leading: Icon(
+                                    isManual ? Icons.edit_road : Icons.route,
+                                    color: isManual ? Colors.green : Colors.blue,
+                                  ),
+                                  title: Text(displayName),
                                   subtitle: Text(
-                                      'Manual Path • ${(item.distanceMeters / 1000).toStringAsFixed(2)} km'),
-                                  trailing: const Chip(
-                                      label: Text('Manual'),
-                                      backgroundColor: Colors.green,
-                                      labelStyle: TextStyle(
-                                          color: Colors.white, fontSize: 10)),
+                                      '${item.sourceShortLabel} • ${(item.distanceMeters / 1000).toStringAsFixed(2)} km • ${item.statusRating.label}'),
+                                  trailing: Chip(
+                                    label: Text(item.sourceShortLabel),
+                                    backgroundColor: isManual ? Colors.green : Colors.blue,
+                                    labelStyle: const TextStyle(
+                                        color: Colors.white, fontSize: 10),
+                                  ),
                                   onTap: () {
-                                    // Navigate to BikePathFormPage for viewing/editing
+                                    // Navigate to contribution details page
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => BikePathFormPage(
-                                          existingPath: item,
+                                          existingContribution: item,
                                         ),
                                       ),
                                     );
