@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/bike_path.dart';
+import '../models/contribution.dart';
 import '../utils/polyline_utils.dart';
 import '../models/street_segment.dart';
 import '../models/path_obstacle.dart';
@@ -14,9 +15,10 @@ import '../services/providers.dart';
 import '../services/geocoding_service.dart';
 
 class BikePathFormPage extends ConsumerStatefulWidget {
-  final BikePath? existingPath; // For editing
+  final BikePath? existingPath; // For editing legacy BikePath
+  final Contribution? existingContribution; // For editing Contribution
 
-  const BikePathFormPage({super.key, this.existingPath});
+  const BikePathFormPage({super.key, this.existingPath, this.existingContribution});
 
   @override
   ConsumerState<BikePathFormPage> createState() => _BikePathFormPageState();
@@ -50,17 +52,24 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
   double _totalPathDistance = 0.0;
   String? _mapPreviewPolyline; // Encoded polyline for map display
 
-  bool get _isEditing => widget.existingPath != null;
+  bool get _isEditing => widget.existingPath != null || widget.existingContribution != null;
+  String? _existingId; // Track the ID of the entity being edited
+  String? _existingGpsPolyline; // Preserve GPS polyline for automatic trips
+  String? _existingTripId; // Preserve trip ID for automatic contributions
+  ContributionSource _existingSource = ContributionSource.manual; // Track source
 
   @override
   void initState() {
     super.initState();
     if (widget.existingPath != null) {
       _loadExistingPath(widget.existingPath!);
+    } else if (widget.existingContribution != null) {
+      _loadExistingContribution(widget.existingContribution!);
     }
   }
 
   void _loadExistingPath(BikePath path) {
+    _existingId = path.id;
     _titleController.text = path.name ?? '';
     _cityController.text = path.city ?? '';
     _visibility = path.visibility;
@@ -69,6 +78,21 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
     _selectedTags.addAll(path.tags);
     _obstacles.addAll(path.obstacles);
     _mapPreviewPolyline = path.mapPreviewPolyline;
+  }
+
+  void _loadExistingContribution(Contribution c) {
+    _existingId = c.id;
+    _titleController.text = c.name ?? '';
+    _cityController.text = c.city ?? '';
+    _visibility = c.isPublished ? PathVisibility.published : PathVisibility.private;
+    _segments.addAll(c.segments);
+    _status = c.statusRating;
+    _selectedTags.addAll(c.tags);
+    _obstacles.addAll(c.obstacles);
+    _mapPreviewPolyline = c.mapPreviewPolyline;
+    _existingGpsPolyline = c.gpsPolyline; // Preserve GPS polyline
+    _existingTripId = c.tripId; // Preserve trip ID
+    _existingSource = c.source; // Preserve source (auto/manual)
   }
 
   @override
@@ -405,31 +429,50 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
     }
 
     final now = DateTime.now();
-    final path = BikePath(
-      id: widget.existingPath?.id ?? const Uuid().v4(),
+    final contributionId = _existingId ?? const Uuid().v4();
+    
+    // Determine state based on visibility
+    final state = _visibility == PathVisibility.published
+        ? ContributionState.published
+        : ContributionState.privateSaved;
+
+    final contribution = Contribution(
+      id: contributionId,
       userId: user.uid,
+      pathId: contributionId, // For manual paths, pathId can be same as id
+      tripId: _existingTripId, // Preserve trip ID for automatic contributions
       name: _titleController.text.isNotEmpty ? _titleController.text : null,
+      source: _isEditing ? _existingSource : ContributionSource.manual,
+      state: state,
+      statusRating: _status,
+      obstacles: _obstacles,
+      tags: _selectedTags.toList(),
       segments: _segments.asMap().entries.map((e) => 
         e.value.copyWith(order: e.key)
       ).toList(),
-      status: _status,
-      visibility: _visibility,
-      obstacles: _obstacles,
-      tags: _selectedTags.toList(),
-      city: _cityController.text.isNotEmpty ? _cityController.text : null,
-      version: (widget.existingPath?.version ?? 0) + 1,
+      gpsPolyline: _existingGpsPolyline, // Preserve GPS polyline for automatic trips
+      mapPreviewPolyline: _mapPreviewPolyline ?? _existingGpsPolyline, // Use GPS as preview if no map polyline
       distanceMeters: _totalPathDistance,
-      mapPreviewPolyline: _mapPreviewPolyline, // Include encoded route
-      createdAt: widget.existingPath?.createdAt ?? now,
-      updatedAt: now,
+      city: _cityController.text.isNotEmpty ? _cityController.text : null,
+      deleted: false,
+      pathScore: null, // Will be calculated by service
+      capturedAt: widget.existingContribution?.capturedAt ?? 
+                  widget.existingPath?.createdAt ?? now,
+      confirmedAt: now, // Manual paths are always confirmed
       publishedAt: _visibility == PathVisibility.published ? now : null,
+      createdAt: widget.existingContribution?.createdAt ?? 
+                 widget.existingPath?.createdAt ?? now,
+      updatedAt: now,
+      version: (widget.existingContribution?.version ?? 
+                widget.existingPath?.version ?? 0) + 1,
     );
 
     try {
+      final service = ref.read(contributionServiceProvider);
       if (_isEditing) {
-        await ref.read(contributeServiceProvider).updateBikePath(path);
+        await service.updateContribution(contribution);
       } else {
-        await ref.read(contributeServiceProvider).addBikePath(path);
+        await service.addContribution(contribution);
       }
       
       if (mounted) {
@@ -437,8 +480,8 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEditing 
-              ? 'Bike Path Updated!' 
-              : 'Bike Path Created Successfully!'),
+              ? 'Contribution Updated!' 
+              : 'Contribution Created Successfully!'),
           ),
         );
       }
@@ -450,6 +493,7 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

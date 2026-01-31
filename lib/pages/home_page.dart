@@ -12,7 +12,7 @@ import 'bike_path_form_page.dart';
 
 import '../services/providers.dart';
 import '../models/trip.dart';
-import '../models/bike_path.dart';
+import '../models/contribution.dart';
 import '../models/app_user.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -317,7 +317,7 @@ class DashboardPage extends ConsumerWidget {
                           ? 0.0
                           : trips.fold<double>(0, (sum, t) {
                                 if (t is Trip) return sum + t.distanceMeters;
-                                if (t is BikePath)
+                                if (t is Contribution)
                                   return sum + t.distanceMeters;
                                 return sum;
                               }) /
@@ -446,7 +446,7 @@ class DashboardPage extends ConsumerWidget {
                                     '${(item.distanceMeters / 1000).toStringAsFixed(2)} km - ${item.duration.inMinutes} min';
                                 id = item.id;
                                 isTrip = true;
-                              } else if (item is BikePath) {
+                              } else if (item is Contribution) {
                                 title = item.name ?? 'Manual Path';
                                 subtitle =
                                     '${(item.distanceMeters / 1000).toStringAsFixed(2)} km';
@@ -497,12 +497,12 @@ class DashboardPage extends ConsumerWidget {
                                               TripDetailsPage(trip: item),
                                         ),
                                       );
-                                    } else if (item is BikePath) {
+                                    } else if (item is Contribution) {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => BikePathFormPage(
-                                            existingPath: item,
+                                            existingContribution: item,
                                           ),
                                         ),
                                       );
@@ -532,7 +532,7 @@ class DashboardPage extends ConsumerWidget {
     // Check type
     String currentName = '';
     if (item is Trip) currentName = item.name ?? '';
-    if (item is BikePath) currentName = item.name ?? '';
+    if (item is Contribution) currentName = item.name ?? '';
 
     final nameController = TextEditingController(text: currentName);
 
@@ -564,11 +564,11 @@ class DashboardPage extends ConsumerWidget {
     if (newName != null && newName.isNotEmpty) {
       if (item is Trip) {
         await ref.read(tripServiceProvider).renameTrip(item, newName);
-      } else if (item is BikePath) {
+      } else if (item is Contribution) {
         await ref
-            .read(contributeServiceProvider)
-            .renameBikePath(item.id, newName);
-        ref.refresh(myBikePathsFutureProvider);
+            .read(contributionServiceProvider)
+            .renameContribution(item.id, newName);
+        ref.invalidate(myContributionsProvider);
       }
     }
   }
@@ -599,9 +599,8 @@ class DashboardPage extends ConsumerWidget {
       if (isTrip) {
         await ref.read(tripServiceProvider).deleteTrip(id);
       } else {
-        await ref.read(contributeServiceProvider).deleteBikePath(id);
-        // Force refresh of the combined provider by refreshing the bike paths future
-        ref.refresh(myBikePathsFutureProvider);
+        await ref.read(contributionServiceProvider).deleteContribution(id);
+        ref.invalidate(myContributionsProvider);
       }
     }
   }

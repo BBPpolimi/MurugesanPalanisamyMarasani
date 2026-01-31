@@ -32,6 +32,31 @@ class TripSummary {
       required this.averageSpeed});
 }
 
+/// Data class to hold trip information during review mode
+class ReviewData {
+  final String tripId;
+  final List<GpsPoint> points;
+  final List<CandidateIssue> candidates;
+  final double distanceMeters;
+  final Duration duration;
+  final double averageSpeed;
+  final DateTime startTime;
+  final DateTime endTime;
+  final bool isAutoDetected;
+
+  ReviewData({
+    required this.tripId,
+    required this.points,
+    required this.candidates,
+    required this.distanceMeters,
+    required this.duration,
+    required this.averageSpeed,
+    required this.startTime,
+    required this.endTime,
+    required this.isAutoDetected,
+  });
+}
+
 class TripService extends ChangeNotifier {
   TripState _state = TripState.idle;
   TripState get state => _state;
@@ -348,6 +373,8 @@ class TripService extends ChangeNotifier {
         geometry: geometry,
         statusRating: PathRateStatus.medium, // Default, user will confirm
         obstacles: obstacles,
+        name: tripName,
+        distanceMeters: distance,
       );
 
       // Update trip with contributionId
@@ -379,6 +406,7 @@ class TripService extends ChangeNotifier {
     lastSummary = null;
     lastSavedTrip = null;
     _currentTripId = null;
+    _reviewData = null;
     _resetError();
     _state =
         _isAutoDetectionEnabled ? TripState.autoMonitoring : TripState.idle;
@@ -388,6 +416,189 @@ class TripService extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // === REVIEW MODE METHODS ===
+  
+  // Cached review data
+  ReviewData? _reviewData;
+  ReviewData? get reviewData => _reviewData;
+
+  /// Enter review mode after stopping recording (keeps data in memory)
+  Future<void> enterReviewMode() async {
+    if (_state != TripState.recording && _state != TripState.paused) return;
+
+    _stopStreams();
+
+    if (_pauseStartTime != null) {
+      _pausedDuration += DateTime.now().difference(_pauseStartTime!);
+      _pauseStartTime = null;
+    }
+
+    final endTime = DateTime.now();
+    final rawDuration =
+        _startTime == null ? Duration.zero : endTime.difference(_startTime!);
+    final activeDuration = rawDuration - _pausedDuration;
+
+    double distance = 0.0;
+    for (int i = 1; i < _points.length; i++) {
+      final prev = _points[i - 1];
+      final cur = _points[i];
+      distance += Geolocator.distanceBetween(
+          prev.latitude, prev.longitude, cur.latitude, cur.longitude);
+    }
+
+    final durationSeconds =
+        activeDuration.inSeconds > 0 ? activeDuration.inSeconds : 0;
+    final avgSpeed = durationSeconds > 0 ? (distance / durationSeconds) : 0.0;
+
+    // Store review data for UI
+    _reviewData = ReviewData(
+      tripId: _currentTripId ?? _uuid.v4(),
+      points: List.from(_points),
+      candidates: List.from(_candidates),
+      distanceMeters: distance,
+      duration: activeDuration,
+      averageSpeed: avgSpeed,
+      startTime: _startTime!,
+      endTime: endTime,
+      isAutoDetected: _isAutoDetectedTrip,
+    );
+
+    _state = TripState.reviewing;
+    notifyListeners();
+  }
+
+  /// Save the reviewed trip with user-specified options
+  Future<void> saveReviewedTrip({
+    String? name,
+    bool isPublic = false,
+    List<CandidateIssue>? confirmedObstacles,
+    PathRateStatus? statusRating,
+  }) async {
+    if (_state != TripState.reviewing || _reviewData == null) return;
+
+    _state = TripState.processing;
+    notifyListeners();
+
+    final data = _reviewData!;
+    
+    // Fetch weather data (optional enrichment)
+    WeatherData? weatherData;
+    if (data.points.isNotEmpty) {
+      final midPoint = data.points[data.points.length ~/ 2];
+      weatherData = await _weatherService.getWeather(
+          midPoint.latitude, midPoint.longitude);
+    }
+
+    // Use confirmed obstacles or all candidates
+    final obstaclesToUse = confirmedObstacles ?? data.candidates;
+
+    // Convert CandidateIssues to PathObstacles
+    final obstacles = obstaclesToUse.map((c) {
+      PathObstacleType obstacleType;
+      switch (c.obstacleType) {
+        case ObstacleType.pothole:
+          obstacleType = PathObstacleType.pothole;
+          break;
+        case ObstacleType.construction:
+          obstacleType = PathObstacleType.construction;
+          break;
+        case ObstacleType.debris:
+          obstacleType = PathObstacleType.debris;
+          break;
+        default:
+          obstacleType = PathObstacleType.other;
+      }
+
+      int severityInt;
+      switch (c.severity) {
+        case ObstacleSeverity.low:
+          severityInt = 2;
+          break;
+        case ObstacleSeverity.medium:
+          severityInt = 3;
+          break;
+        case ObstacleSeverity.high:
+          severityInt = 4;
+          break;
+        default:
+          severityInt = 3;
+      }
+
+      return PathObstacle(
+        id: c.id,
+        lat: c.lat,
+        lng: c.lng,
+        type: obstacleType,
+        severity: severityInt,
+        createdAt: c.timestamp,
+      );
+    }).toList();
+
+    // Create trip
+    var trip = Trip(
+      id: data.tripId,
+      userId: _userId ?? '',
+      name: name,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      points: data.points,
+      distanceMeters: data.distanceMeters,
+      duration: data.duration,
+      averageSpeed: data.averageSpeed,
+      isAutoDetected: data.isAutoDetected,
+      weatherData: weatherData,
+    );
+
+    // Save candidates linked to this trip
+    if (obstaclesToUse.isNotEmpty) {
+      await _repository.saveCandidates(data.tripId, obstaclesToUse);
+    }
+
+    // Create Contribution with GPS polyline and visibility
+    Contribution? contribution;
+    if (_contributionService != null && data.points.isNotEmpty) {
+      final geometry = data.points.map((p) => LatLng(p.latitude, p.longitude)).toList();
+
+      contribution = await _contributionService!.createAutomaticContribution(
+        tripId: data.tripId,
+        geometry: geometry,
+        statusRating: statusRating ?? PathRateStatus.medium,
+        obstacles: obstacles,
+        name: name,
+        distanceMeters: data.distanceMeters,
+        isPublic: isPublic,  // NEW: User's visibility choice
+      );
+
+      // Update trip with contributionId
+      trip = trip.copyWith(contributionId: contribution.id);
+    }
+
+    // Save trip
+    await _repository.saveTrip(trip);
+    lastSavedTrip = trip;
+
+    // Reset auto-detected flag
+    _isAutoDetectedTrip = false;
+    _reviewData = null;
+
+    _state = TripState.saved;
+
+    // If auto-detection was on, go back to monitoring
+    if (_isAutoDetectionEnabled) {
+      _state = TripState.autoMonitoring;
+      _startAutoMonitoring();
+    }
+
+    notifyListeners();
+  }
+
+  /// Cancel review and discard the trip
+  void cancelReview() {
+    if (_state != TripState.reviewing) return;
+    _reviewData = null;
+    clear();
   }
 
   void retry() {

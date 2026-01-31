@@ -339,7 +339,7 @@ class MergeAlgorithm {
     final result = <String, double>{};
     
     for (final status in PathRateStatus.values) {
-      result[status.name] = 0;
+      result[status.toString().split('.').last] = 0;
     }
     
     for (final vote in votes) {
@@ -347,7 +347,8 @@ class MergeAlgorithm {
         publishedAt: vote.publishedAt,
         confirmCount: vote.confirmCount,
       );
-      result[vote.status.name] = (result[vote.status.name] ?? 0) + weight;
+      final statusKey = vote.status.toString().split('.').last;
+      result[statusKey] = (result[statusKey] ?? 0) + weight;
     }
     
     return result;

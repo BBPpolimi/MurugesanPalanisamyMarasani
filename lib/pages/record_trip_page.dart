@@ -5,7 +5,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/providers.dart';
 import '../services/trip_service.dart';
 import '../models/trip_state.dart';
-import 'review_issues_page.dart';
+import '../models/path_quality_report.dart';
+import '../models/candidate_issue.dart';
+import '../models/obstacle.dart';
 
 class RecordTripPage extends ConsumerStatefulWidget {
   const RecordTripPage({super.key});
@@ -17,6 +19,19 @@ class RecordTripPage extends ConsumerStatefulWidget {
 class _RecordTripPageState extends ConsumerState<RecordTripPage> {
   GoogleMapController? _mapController;
   bool _shouldFollowUser = true;
+  
+  // Review mode state
+  final TextEditingController _nameController = TextEditingController();
+  bool _isPublic = false;
+  PathRateStatus _pathRating = PathRateStatus.medium;
+  Set<String> _dismissedObstacles = {};
+  Map<String, CandidateIssue> _editedObstacles = {}; // Track edited type/severity
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +44,18 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
     final polylineCoordinates =
         points.map((p) => LatLng(p.latitude, p.longitude)).toList();
 
-    // Auto-follow logic
-    if (_shouldFollowUser && points.isNotEmpty && _mapController != null) {
+    // Auto-follow logic - only when NOT in review mode
+    if (state != TripState.reviewing && 
+        _shouldFollowUser && points.isNotEmpty && _mapController != null) {
       final lastPoint = points.last;
       _mapController!.animateCamera(
         CameraUpdate.newLatLng(LatLng(lastPoint.latitude, lastPoint.longitude)),
       );
+    }
+    
+    // Nullify controller when entering review to prevent disposed controller access
+    if (state == TripState.reviewing) {
+      _mapController = null;
     }
 
     return Scaffold(
@@ -106,6 +127,11 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
               ),
             ),
 
+          // REVIEW MODE: Show review UI instead of map
+          if (state == TripState.reviewing)
+            Expanded(child: _buildReviewUI(tripService))
+          // NORMAL MODE: Show map
+          else
           /// MAP AREA (replaces the list)
           Expanded(
             child: Stack(
@@ -188,6 +214,8 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
           ),
 
           /// ACTION BUTTONS CONTAINER
+          // Hide bottom controls when in review mode (review UI has its own buttons)
+          if (state != TripState.reviewing)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
@@ -218,36 +246,14 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
                   ),
                 ],
                 if (state == TripState.saved)
-                  Column(
-                    children: [
-                      if (candidates.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ReviewIssuesPage()));
-                            },
-                            icon: const Icon(Icons.rate_review),
-                            label: Text('Review ${candidates.length} Issues'),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(50)),
-                          ),
-                        ),
-                      ElevatedButton(
-                        onPressed: () => ref
-                            .read(tripServiceProvider)
-                            .clear(), // Reset to idle
-                        child: const Text('Start New Trip'),
-                        style: ElevatedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(50)),
-                      ),
-                    ],
+                  // Just show Start New Trip - issues already reviewed in review form
+                  ElevatedButton(
+                    onPressed: () => ref
+                        .read(tripServiceProvider)
+                        .clear(), // Reset to idle
+                    child: const Text('Start New Trip'),
+                    style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50)),
                   ),
               ],
             ),
@@ -309,6 +315,12 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
         color = Colors.red;
         title = 'Error';
         subtitle = tripService.errorMessage ?? 'Unknown error';
+        break;
+      case TripState.reviewing:
+        icon = Icons.rate_review;
+        color = Colors.purple;
+        title = 'Review Your Trip';
+        subtitle = 'Confirm and save your ride';
         break;
     }
 
@@ -380,48 +392,10 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
   Widget _buildStopButton(WidgetRef ref, BuildContext context) {
     return ElevatedButton.icon(
       icon: const Icon(Icons.stop),
-      label: const Text('Stop Trip'),
+      label: const Text('Stop & Review'),
       onPressed: () async {
-        // Prompt for trip name
-        final nameController = TextEditingController();
-        final shouldStop = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Save Trip'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Do you want to stop recording?'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Trip Name (Optional)',
-                    hintText: 'e.g., Morning Commute',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Stop & Save'),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldStop == true) {
-          final name = nameController.text.trim().isEmpty
-              ? null
-              : nameController.text.trim();
-          await ref.read(tripServiceProvider).stopRecording(tripName: name);
-        }
+        // Enter review mode instead of immediately saving
+        await ref.read(tripServiceProvider).enterReviewMode();
       },
       style: ElevatedButton.styleFrom(
         minimumSize: const Size.fromHeight(50),
@@ -429,5 +403,453 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
         foregroundColor: Colors.white,
       ),
     );
+  }
+
+  /// Build the post-trip review UI
+  Widget _buildReviewUI(TripService tripService) {
+    final reviewData = tripService.reviewData;
+    if (reviewData == null) {
+      return const Center(child: Text('No review data available'));
+    }
+
+    // Get points for map display
+    final polylineCoordinates = reviewData.points
+        .map((p) => LatLng(p.latitude, p.longitude))
+        .toList();
+
+    // Filter out dismissed obstacles
+    final activeObstacles = reviewData.candidates
+        .where((c) => !_dismissedObstacles.contains(c.id))
+        .toList();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.green.shade50,
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Trip Recorded! Review and save:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Map Preview
+          SizedBox(
+            height: 200,
+            child: GoogleMap(
+              key: const ValueKey('review_map'), // Prevent recreation on setState
+              initialCameraPosition: CameraPosition(
+                target: polylineCoordinates.isNotEmpty
+                    ? polylineCoordinates.first
+                    : const LatLng(45.4642, 9.1900),
+                zoom: 14,
+              ),
+              polylines: {
+                if (polylineCoordinates.length >= 2)
+                  Polyline(
+                    polylineId: const PolylineId('trip_path'),
+                    points: polylineCoordinates,
+                    color: Colors.blue,
+                    width: 4,
+                  ),
+              },
+              markers: {
+                // Start marker
+                if (polylineCoordinates.isNotEmpty)
+                  Marker(
+                    markerId: const MarkerId('start'),
+                    position: polylineCoordinates.first,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueGreen),
+                    infoWindow: const InfoWindow(title: 'Start'),
+                  ),
+                // End marker
+                if (polylineCoordinates.length > 1)
+                  Marker(
+                    markerId: const MarkerId('end'),
+                    position: polylineCoordinates.last,
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed),
+                    infoWindow: const InfoWindow(title: 'End'),
+                  ),
+                // Obstacle markers
+                ...activeObstacles.map((obstacle) => Marker(
+                  markerId: MarkerId('obstacle_${obstacle.id}'),
+                  position: LatLng(obstacle.lat, obstacle.lng),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueOrange),
+                  infoWindow: InfoWindow(
+                    title: obstacle.obstacleType?.name ?? 'Issue',
+                    snippet: 'Severity: ${obstacle.severity?.name ?? "Unknown"}',
+                  ),
+                )),
+              },
+              zoomControlsEnabled: false,
+              myLocationButtonEnabled: false,
+              liteModeEnabled: true, // Use lite mode to prevent controller issues
+            ),
+          ),
+
+          // Stats Row
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(Icons.straighten, 
+                    '${(reviewData.distanceMeters / 1000).toStringAsFixed(2)} km', 'Distance'),
+                _buildStatItem(Icons.timer, 
+                    _formatDuration(reviewData.duration), 'Duration'),
+                _buildStatItem(Icons.speed, 
+                    '${(reviewData.averageSpeed * 3.6).toStringAsFixed(1)} km/h', 'Avg Speed'),
+              ],
+            ),
+          ),
+
+          const Divider(),
+
+          // Name Input
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Trip Name (Optional)',
+                hintText: 'e.g., Morning Commute',
+                prefixIcon: Icon(Icons.edit),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+
+          // Path Rating
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Path Quality Rating:', 
+                    style: TextStyle(fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: PathRateStatus.values.map((status) {
+                    final isSelected = _pathRating == status;
+                    return ChoiceChip(
+                      label: Text(status.label),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) setState(() => _pathRating = status);
+                      },
+                      selectedColor: _getStatusColor(status).withOpacity(0.3),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+
+          // Public Toggle
+          SwitchListTile(
+            title: const Text('Make Public'),
+            subtitle: const Text('Share this path with the community'),
+            value: _isPublic,
+            onChanged: (val) => setState(() => _isPublic = val),
+            secondary: Icon(
+              _isPublic ? Icons.public : Icons.lock,
+              color: _isPublic ? Colors.green : Colors.grey,
+            ),
+          ),
+
+          // Obstacles Section
+          if (reviewData.candidates.isNotEmpty) ...[
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Detected Issues (${activeObstacles.length} of ${reviewData.candidates.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+            ...reviewData.candidates.map((originalObstacle) {
+              // Use edited version if available, otherwise original
+              final obstacle = _editedObstacles[originalObstacle.id] ?? originalObstacle;
+              final isDismissed = _dismissedObstacles.contains(obstacle.id);
+              
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: ExpansionTile(
+                  leading: Icon(
+                    isDismissed ? Icons.check_circle_outline : _getObstacleIcon(obstacle.obstacleType),
+                    color: isDismissed ? Colors.grey : Colors.orange,
+                  ),
+                  title: Text(
+                    obstacle.obstacleType?.label ?? 'Unknown Issue',
+                    style: TextStyle(
+                      decoration: isDismissed ? TextDecoration.lineThrough : null,
+                      color: isDismissed ? Colors.grey : null,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Severity: ${obstacle.severity?.label ?? "Unknown"}',
+                    style: TextStyle(color: isDismissed ? Colors.grey : null),
+                  ),
+                  trailing: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        if (isDismissed) {
+                          _dismissedObstacles.remove(obstacle.id);
+                        } else {
+                          _dismissedObstacles.add(obstacle.id);
+                        }
+                      });
+                    },
+                    child: Text(isDismissed ? 'Restore' : 'Dismiss'),
+                  ),
+                  children: [
+                    if (!isDismissed)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Type Selector
+                            const Text('Issue Type:', style: TextStyle(fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: ObstacleType.values.map((type) {
+                                final isSelected = obstacle.obstacleType == type;
+                                return ChoiceChip(
+                                  avatar: Icon(_getObstacleIcon(type), size: 18),
+                                  label: Text(type.label),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _editedObstacles[obstacle.id] = obstacle.copyWith(
+                                          obstacleType: type,
+                                        );
+                                      });
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            // Severity Selector
+                            const Text('Severity:', style: TextStyle(fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: ObstacleSeverity.values.map((sev) {
+                                final isSelected = obstacle.severity == sev;
+                                return ChoiceChip(
+                                  label: Text(sev.label),
+                                  selected: isSelected,
+                                  selectedColor: _getSeverityColor(sev).withOpacity(0.3),
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _editedObstacles[obstacle.id] = obstacle.copyWith(
+                                          severity: sev,
+                                        );
+                                      });
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ],
+
+          const SizedBox(height: 16),
+
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                ElevatedButton.icon(
+                  icon: Icon(_isPublic ? Icons.publish : Icons.save),
+                  label: Text(_isPublic ? 'Save & Publish' : 'Save as Draft'),
+                  onPressed: () => _saveTrip(tripService),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    backgroundColor: _isPublic ? Colors.green : Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    // Confirm discard
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Discard Trip?'),
+                        content: const Text('This will permanently delete the recorded trip.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              ref.read(tripServiceProvider).cancelReview();
+                              _resetReviewState();
+                            },
+                            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Discard Trip'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, size: 24, color: Colors.blue),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    final seconds = d.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    } else {
+      return '${seconds}s';
+    }
+  }
+
+  Color _getStatusColor(PathRateStatus status) {
+    switch (status) {
+      case PathRateStatus.optimal:
+        return Colors.green;
+      case PathRateStatus.medium:
+        return Colors.blue;
+      case PathRateStatus.sufficient:
+        return Colors.orange;
+      case PathRateStatus.requiresMaintenance:
+        return Colors.red;
+    }
+  }
+
+  Future<void> _saveTrip(TripService tripService) async {
+    final name = _nameController.text.trim().isEmpty 
+        ? null 
+        : _nameController.text.trim();
+
+    // Get confirmed obstacles (not dismissed)
+    final reviewData = tripService.reviewData;
+    final confirmedObstacles = reviewData?.candidates
+        .where((c) => !_dismissedObstacles.contains(c.id))
+        .toList();
+
+    // Apply edits to confirmed obstacles
+    final editedConfirmedObstacles = confirmedObstacles?.map((original) {
+      return _editedObstacles[original.id] ?? original;
+    }).toList();
+
+    await tripService.saveReviewedTrip(
+      name: name,
+      isPublic: _isPublic,
+      confirmedObstacles: editedConfirmedObstacles,
+      statusRating: _pathRating,
+    );
+
+    _resetReviewState();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isPublic 
+              ? 'Trip saved and published!' 
+              : 'Trip saved as draft!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  void _resetReviewState() {
+    _nameController.clear();
+    _isPublic = false;
+    _pathRating = PathRateStatus.medium;
+    _dismissedObstacles.clear();
+    _editedObstacles.clear();
+  }
+
+  IconData _getObstacleIcon(ObstacleType? type) {
+    switch (type) {
+      case ObstacleType.pothole:
+        return Icons.warning_rounded;
+      case ObstacleType.construction:
+        return Icons.construction;
+      case ObstacleType.closure:
+        return Icons.block;
+      case ObstacleType.debris:
+        return Icons.delete_sweep;
+      case ObstacleType.other:
+      default:
+        return Icons.report_problem;
+    }
+  }
+
+  Color _getSeverityColor(ObstacleSeverity severity) {
+    switch (severity) {
+      case ObstacleSeverity.low:
+        return Colors.green;
+      case ObstacleSeverity.medium:
+        return Colors.orange;
+      case ObstacleSeverity.high:
+        return Colors.red;
+    }
   }
 }

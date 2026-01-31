@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../models/bike_path.dart';
+import '../models/contribution.dart';
 import '../models/path_quality_report.dart';
 import '../services/providers.dart';
 import '../utils/polyline_utils.dart';
@@ -41,15 +41,15 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
     super.dispose();
   }
 
-  List<BikePath> _applyFilters(List<BikePath> paths) {
+  List<Contribution> _applyFilters(List<Contribution> paths) {
     return paths.where((path) {
       // Status filter
       if (_statusFilter != PathStatusFilter.all) {
         final statusMatch = switch (_statusFilter) {
-          PathStatusFilter.optimal => path.status == PathRateStatus.optimal,
-          PathStatusFilter.medium => path.status == PathRateStatus.medium,
-          PathStatusFilter.sufficient => path.status == PathRateStatus.sufficient,
-          PathStatusFilter.requiresMaintenance => path.status == PathRateStatus.requiresMaintenance,
+          PathStatusFilter.optimal => path.statusRating == PathRateStatus.optimal,
+          PathStatusFilter.medium => path.statusRating == PathRateStatus.medium,
+          PathStatusFilter.sufficient => path.statusRating == PathRateStatus.sufficient,
+          PathStatusFilter.requiresMaintenance => path.statusRating == PathRateStatus.requiresMaintenance,
           PathStatusFilter.all => true,
         };
         if (!statusMatch) return false;
@@ -67,7 +67,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final publicPathsAsync = ref.watch(publicBikePathsProvider);
+    final publicPathsAsync = ref.watch(publicContributionsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -109,7 +109,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
                     Text('Error loading paths: $e'),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.refresh(publicBikePathsProvider),
+                      onPressed: () => ref.refresh(publicContributionsProvider),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -269,9 +269,9 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
     );
   }
 
-  Widget _buildListView(List<BikePath> paths) {
+  Widget _buildListView(List<Contribution> paths) {
     return RefreshIndicator(
-      onRefresh: () async => ref.refresh(publicBikePathsProvider),
+      onRefresh: () async => ref.refresh(publicContributionsProvider),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: paths.length,
@@ -280,7 +280,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
     );
   }
 
-  Widget _buildPathCard(BikePath path) {
+  Widget _buildPathCard(Contribution path) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -288,7 +288,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ContributionDetailsPage(path: path, isPublicView: true),
+              builder: (_) => ContributionDetailsPage(contribution: path, isPublicView: true),
             ),
           );
         },
@@ -306,7 +306,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  _buildStatusChip(path.status),
+                  _buildStatusChip(path.statusRating),
                 ],
               ),
               if (path.city != null) ...[
@@ -434,7 +434,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
     );
   }
 
-  Widget _buildMapView(List<BikePath> paths) {
+  Widget _buildMapView(List<Contribution> paths) {
     // Calculate center from all paths
     if (paths.isEmpty || paths.every((p) => p.segments.isEmpty)) {
       return const Center(child: Text('No path data for map'));
@@ -461,18 +461,18 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
           position: LatLng(firstSeg.lat, firstSeg.lng),
           infoWindow: InfoWindow(
             title: path.name ?? 'Bike Path',
-            snippet: '${path.status.label} • ${path.segments.length} segments',
+            snippet: '${path.statusRating.label} • ${path.segments.length} segments',
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ContributionDetailsPage(path: path, isPublicView: true),
+                  builder: (_) => ContributionDetailsPage(contribution: path, isPublicView: true),
                 ),
               );
             },
           ),
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            switch (path.status) {
+            switch (path.statusRating) {
               PathRateStatus.optimal => BitmapDescriptor.hueGreen,
               PathRateStatus.medium => BitmapDescriptor.hueAzure,
               PathRateStatus.sufficient => BitmapDescriptor.hueOrange,
@@ -492,7 +492,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
           polylines.add(Polyline(
             polylineId: PolylineId('path_${path.id}'),
             points: points,
-            color: switch (path.status) {
+            color: switch (path.statusRating) {
               PathRateStatus.optimal => Colors.green,
               PathRateStatus.medium => Colors.blue,
               PathRateStatus.sufficient => Colors.orange,
@@ -503,7 +503,7 @@ class _PublicPathsPageState extends ConsumerState<PublicPathsPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ContributionDetailsPage(path: path, isPublicView: true),
+                  builder: (_) => ContributionDetailsPage(contribution: path, isPublicView: true),
                 ),
               );
             },

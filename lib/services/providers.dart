@@ -24,6 +24,7 @@ import 'merge_service.dart';
 
 import '../models/trip.dart';
 import '../models/bike_path.dart';
+import '../models/contribution.dart';
 
 export 'contribute_service.dart';
 export 'directions_service.dart';
@@ -39,12 +40,11 @@ final tripRepositoryProvider = Provider<TripRepository>((ref) {
   final authState = ref.watch(authStateProvider);
   final repository = TripRepository();
 
-  // Initialize with user ID if authenticated
-  authState.whenData((user) {
-    if (user != null) {
-      repository.initialize(user.uid);
-    }
-  });
+  // Use synchronous data access to ensure immediate initialization
+  final user = authState.asData?.value;
+  if (user != null) {
+    repository.initialize(user.uid);
+  }
 
   return repository;
 });
@@ -55,19 +55,18 @@ final tripServiceProvider = ChangeNotifierProvider<TripService>((ref) {
 
   final service = TripService(repository: repository);
 
-  // Initialize service with user ID if authenticated (though mostly delegated to repo)
-  authState.whenData((user) {
-    if (user != null) {
-      service.initialize(user.uid);
-    }
-  });
+  // Use synchronous data access to ensure immediate initialization
+  final user = authState.asData?.value;
+  if (user != null) {
+    service.initialize(user.uid);
+  }
 
   return service;
 });
 
 final tripsStreamProvider = StreamProvider<List<dynamic>>((ref) async* {
   final tripRepository = ref.watch(tripRepositoryProvider);
-  final contributeService = ref.watch(contributeServiceProvider);
+  final contributionService = ref.watch(contributionServiceProvider);
   final authState = ref.watch(authStateProvider);
 
   if (authState.asData?.value == null) {
@@ -78,20 +77,31 @@ final tripsStreamProvider = StreamProvider<List<dynamic>>((ref) async* {
   // Watch Trips Stream
   final tripsStream = tripRepository.watchTrips();
 
-  // Fetch Bike Paths (Manual) - Currently a Future, so we fetch once per stream build
-  // Ideally this should be a stream too, but for now we mix it in.
-  // We yield whenever trips update, re-fetching bike paths to ensure data is relatively fresh.
-
+  // Fetch Contributions (both manual and automatic) and combine with trips
   await for (final trips in tripsStream) {
-    final bikePaths = await contributeService.getMyBikePaths();
+    // Get all user contributions
+    final contributions = await contributionService.getMyContributions();
 
-    final combined = <dynamic>[...trips, ...bikePaths];
+    // Combine trips and contributions, avoiding duplicates
+    // (contributions with tripId are already linked to trips)
+    final tripIds = trips.map((t) => t.id).toSet();
+    final contributionTripIds = contributions
+        .where((c) => c.tripId != null)
+        .map((c) => c.tripId!)
+        .toSet();
+
+    final combined = <dynamic>[
+      ...trips, // All trips
+      // Only add contributions that are NOT linked to a trip (manual contributions)
+      ...contributions.where((c) => c.tripId == null),
+    ];
+
     // Sort by date descending
     combined.sort((a, b) {
       DateTime timeA;
       if (a is Trip) {
         timeA = a.startTime;
-      } else if (a is BikePath) {
+      } else if (a is Contribution) {
         timeA = a.createdAt;
       } else {
         timeA = DateTime.fromMillisecondsSinceEpoch(0);
@@ -100,7 +110,7 @@ final tripsStreamProvider = StreamProvider<List<dynamic>>((ref) async* {
       DateTime timeB;
       if (b is Trip) {
         timeB = b.startTime;
-      } else if (b is BikePath) {
+      } else if (b is Contribution) {
         timeB = b.createdAt;
       } else {
         timeB = DateTime.fromMillisecondsSinceEpoch(0);
@@ -144,12 +154,11 @@ final contributeServiceProvider = Provider<ContributeService>((ref) {
   final authState = ref.watch(authStateProvider);
   final service = ContributeService();
 
-  // Initialize with user ID if authenticated
-  authState.whenData((user) {
-    if (user != null) {
-      service.initialize(user.uid);
-    }
-  });
+  // Use synchronous data access to ensure immediate initialization
+  final user = authState.asData?.value;
+  if (user != null) {
+    service.initialize(user.uid);
+  }
 
   return service;
 });
@@ -158,12 +167,11 @@ final adminServiceProvider = Provider<AdminService>((ref) {
   final authState = ref.watch(userWithRoleProvider);
   final service = AdminService();
 
-  // Initialize with user ID, admin status, and email
-  authState.whenData((user) {
-    if (user != null) {
-      service.initialize(user.uid, user.isAdmin, email: user.email);
-    }
-  });
+  // Use synchronous data access to ensure immediate initialization
+  final user = authState.asData?.value;
+  if (user != null) {
+    service.initialize(user.uid, user.isAdmin, email: user.email);
+  }
 
   return service;
 });
@@ -204,11 +212,11 @@ final contributionServiceProvider = Provider<contribution.ContributionService>((
   final authState = ref.watch(authStateProvider);
   final service = contribution.ContributionService();
 
-  authState.whenData((user) {
-    if (user != null) {
-      service.initialize(user.uid);
-    }
-  });
+  // Use synchronous data access to ensure immediate initialization
+  final user = authState.asData?.value;
+  if (user != null) {
+    service.initialize(user.uid);
+  }
 
   return service;
 });
@@ -239,7 +247,35 @@ final publicBikePathsProvider = FutureProvider<List<BikePath>>((ref) async {
   return await service.getPublicBikePaths();
 });
 
+// ============ NEW Contribution-Based Providers ============
+// These use the new unified Contribution model for both manual and automatic paths
+
+/// Provider for user's draft contributions (both manual and automatic)
+final myDraftContributionsProvider = FutureProvider<List<Contribution>>((ref) async {
+  final service = ref.watch(contributionServiceProvider);
+  return await service.getMyDraftContributions();
+});
+
+/// Provider for user's published contributions
+final myPublishedContributionsProvider = FutureProvider<List<Contribution>>((ref) async {
+  final service = ref.watch(contributionServiceProvider);
+  return await service.getMyPublishedContributions();
+});
+
+/// Provider for all public contributions (community view)
+final publicContributionsProvider = FutureProvider<List<Contribution>>((ref) async {
+  final service = ref.watch(contributionServiceProvider);
+  return await service.getPublicContributions();
+});
+
+/// Provider for all user's contributions (drafts + published)
+final myContributionsProvider = FutureProvider<List<Contribution>>((ref) async {
+  final service = ref.watch(contributionServiceProvider);
+  return await service.getMyContributions();
+});
+
 // ============ Path Groups (Merged View) ============
+
 
 final pathGroupServiceProvider = Provider<PathGroupService>((ref) {
   return PathGroupService();

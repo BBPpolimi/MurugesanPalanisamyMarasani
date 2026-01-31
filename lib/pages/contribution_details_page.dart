@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../models/contribution.dart';
 import '../models/bike_path.dart';
 import '../services/providers.dart';
 import '../utils/polyline_utils.dart';
 import 'bike_path_form_page.dart';
 
 class ContributionDetailsPage extends ConsumerStatefulWidget {
-  final BikePath path;
+  final Contribution? contribution;
+  final BikePath? path; // Backward compatibility
   final bool isPublicView;
 
   const ContributionDetailsPage({
     super.key, 
-    required this.path,
+    this.contribution,
+    this.path,
     this.isPublicView = false,
-  });
+  }) : assert(contribution != null || path != null, 'Either contribution or path must be provided');
 
   @override
   ConsumerState<ContributionDetailsPage> createState() => _ContributionDetailsPageState();
@@ -25,20 +28,92 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   bool _isLoadingRoute = false;
+  
+  // Unified contribution (either passed directly or converted from BikePath)
+  late Contribution _contribution;
 
   @override
   void initState() {
     super.initState();
+    _contribution = widget.contribution ?? _convertBikePathToContribution(widget.path!);
+    _computeInitialCameraPosition();
     _buildMapData();
+  }
+  
+  late LatLng _initialCameraPosition;
+  
+  /// Compute initial camera position from segments or polyline
+  void _computeInitialCameraPosition() {
+    final contribution = _contribution;
+    
+    // First try segments
+    if (contribution.segments.isNotEmpty) {
+      final seg = contribution.segments.first;
+      _initialCameraPosition = LatLng(seg.lat, seg.lng);
+      return;
+    }
+    
+    // Try mapPreviewPolyline
+    if (contribution.mapPreviewPolyline != null && contribution.mapPreviewPolyline!.isNotEmpty) {
+      final points = PolylineUtils.decodePolyline(contribution.mapPreviewPolyline!);
+      if (points.isNotEmpty) {
+        _initialCameraPosition = points.first;
+        return;
+      }
+    }
+    
+    // Try gpsPolyline
+    if (contribution.gpsPolyline != null && contribution.gpsPolyline!.isNotEmpty) {
+      final points = PolylineUtils.decodePolyline(contribution.gpsPolyline!);
+      if (points.isNotEmpty) {
+        _initialCameraPosition = points.first;
+        return;
+      }
+    }
+    
+    // Default fallback (should rarely happen)
+    _initialCameraPosition = const LatLng(45.4642, 9.1900); // Milan as default
+  }
+  
+  /// Convert legacy BikePath to Contribution for display
+  Contribution _convertBikePathToContribution(BikePath path) {
+    final now = DateTime.now();
+    return Contribution(
+      id: path.id,
+      userId: path.userId,
+      pathId: path.id,
+      tripId: null,
+      name: path.name,
+      source: ContributionSource.manual,
+      state: path.visibility == PathVisibility.published 
+          ? ContributionState.published 
+          : ContributionState.privateSaved,
+      statusRating: path.status,
+      obstacles: path.obstacles,
+      tags: path.tags,
+      segments: path.segments,
+      gpsPolyline: null,
+      mapPreviewPolyline: path.mapPreviewPolyline,
+      distanceMeters: path.distanceMeters,
+      city: path.city,
+      deleted: path.deleted,
+      pathScore: null,
+      capturedAt: path.createdAt,
+      confirmedAt: now,
+      publishedAt: path.publishedAt,
+      createdAt: path.createdAt,
+      updatedAt: path.updatedAt,
+      version: path.version,
+    );
   }
 
   Future<void> _buildMapData() async {
-    final path = widget.path;
+    final contribution = _contribution;
     
-    // Build markers
+    // Build markers from segments (for manual paths)
     _markers = {};
-    for (int i = 0; i < path.segments.length; i++) {
-      final seg = path.segments[i];
+    for (int i = 0; i < contribution.segments.length; i++) {
+      final seg = contribution.segments[i];
       _markers.add(Marker(
         markerId: MarkerId('seg_$i'),
         position: LatLng(seg.lat, seg.lng),
@@ -47,21 +122,22 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
       ));
     }
 
-    // Build polyline - use decoded mapPreviewPolyline if available
+    // Build polyline - prioritize mapPreviewPolyline, then gpsPolyline
     List<LatLng> polylinePoints = [];
     
-    if (path.mapPreviewPolyline != null && path.mapPreviewPolyline!.isNotEmpty) {
-      // Decode the stored route polyline
-      polylinePoints = PolylineUtils.decodePolyline(path.mapPreviewPolyline!);
-    } else if (path.segments.length >= 2) {
-      // Fetch route dynamically from DirectionsService
+    if (contribution.mapPreviewPolyline != null && contribution.mapPreviewPolyline!.isNotEmpty) {
+      polylinePoints = PolylineUtils.decodePolyline(contribution.mapPreviewPolyline!);
+    } else if (contribution.gpsPolyline != null && contribution.gpsPolyline!.isNotEmpty) {
+      polylinePoints = PolylineUtils.decodePolyline(contribution.gpsPolyline!);
+    } else if (contribution.segments.length >= 2) {
+      // Fetch route dynamically for manual paths
       setState(() => _isLoadingRoute = true);
       
       final directionsService = ref.read(directionsServiceProvider);
       
-      for (int i = 0; i < path.segments.length - 1; i++) {
-        final start = path.segments[i];
-        final end = path.segments[i + 1];
+      for (int i = 0; i < contribution.segments.length - 1; i++) {
+        final start = contribution.segments[i];
+        final end = contribution.segments[i + 1];
         
         try {
           var directions = await directionsService.getDirections(
@@ -70,23 +146,19 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
             mode: 'bicycling',
           );
           
-          if (directions == null) {
-            directions = await directionsService.getDirections(
-              origin: LatLng(start.lat, start.lng),
-              destination: LatLng(end.lat, end.lng),
-              mode: 'driving',
-            );
-          }
+          directions ??= await directionsService.getDirections(
+            origin: LatLng(start.lat, start.lng),
+            destination: LatLng(end.lat, end.lng),
+            mode: 'driving',
+          );
           
           if (directions != null) {
             polylinePoints.addAll(directions.polylinePoints);
           } else {
-            // Fallback to straight line for this segment
             polylinePoints.add(LatLng(start.lat, start.lng));
             polylinePoints.add(LatLng(end.lat, end.lng));
           }
         } catch (e) {
-          // Fallback to straight line
           polylinePoints.add(LatLng(start.lat, start.lng));
           polylinePoints.add(LatLng(end.lat, end.lng));
         }
@@ -111,23 +183,23 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final path = widget.path;
-    final isPublished = path.visibility == PathVisibility.published;
+    final contribution = _contribution;
+    final isPublished = contribution.isPublished;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(path.name ?? 'Path Details'),
+        title: Text(contribution.name ?? 'Contribution Details'),
         actions: widget.isPublicView
-          ? null  // No actions for public view
+          ? null
           : [
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () => _editPath(),
-                tooltip: 'Edit',
-              ),
+              if (contribution.source == ContributionSource.manual)
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => _editContribution(),
+                  tooltip: 'Edit',
+                ),
               PopupMenuButton(
                 itemBuilder: (ctx) => [
                   PopupMenuItem(
@@ -160,9 +232,7 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
                 children: [
                   GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: path.segments.isNotEmpty
-                          ? LatLng(path.segments.first.lat, path.segments.first.lng)
-                          : const LatLng(37.7749, -122.4194),
+                      target: _initialCameraPosition,
                       zoom: 13,
                     ),
                     markers: _markers,
@@ -183,10 +253,7 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
                           children: [
                             CircularProgressIndicator(color: Colors.white),
                             SizedBox(height: 8),
-                            Text(
-                              'Loading route...',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            Text('Loading route...', style: TextStyle(color: Colors.white)),
                           ],
                         ),
                       ),
@@ -200,84 +267,72 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Status Row
-                  Row(
+                  // Source, Status and Score Row
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      _buildStatusChip(path.status),
-                      const SizedBox(width: 8),
-                      _buildVisibilityChip(path.visibility),
+                      _buildSourceChip(contribution.source),
+                      _buildStatusChip(contribution.statusRating),
+                      if (contribution.pathScore != null)
+                        _buildScoreChip(contribution.pathScore!),
+                      if (isPublished)
+                        _buildVisibilityChip(),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // Stats
+                  // Stats Card
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStat(
-                            Icons.route,
-                            '${path.segments.length}',
-                            'Segments',
-                          ),
-                          _buildStat(
-                            Icons.straighten,
-                            '${(path.distanceMeters / 1000).toStringAsFixed(2)}',
-                            'km',
-                          ),
-                          _buildStat(
-                            Icons.warning_amber,
-                            '${path.obstacles.length}',
-                            'Obstacles',
-                          ),
+                          if (contribution.segments.isNotEmpty)
+                            _buildStat(Icons.route, '${contribution.segments.length}', 'Segments'),
+                          _buildStat(Icons.straighten, 
+                            '${(contribution.distanceMeters / 1000).toStringAsFixed(2)}', 'km'),
+                          _buildStat(Icons.warning_amber, 
+                            '${contribution.obstacles.length}', 'Obstacles'),
+                          if (contribution.pathScore != null)
+                            _buildStat(Icons.star_rate, 
+                              contribution.pathScore!.toStringAsFixed(0), 'Score'),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Streets
-                  Text(
-                    'Route',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  ...path.segments.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final seg = entry.value;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.green.shade100,
-                        radius: 16,
-                        child: Text(
-                          '${i + 1}',
-                          style: const TextStyle(fontSize: 12),
+                  // Route/Segments section
+                  if (contribution.segments.isNotEmpty) ...[
+                    Text('Route', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    ...contribution.segments.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final seg = entry.value;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.green.shade100,
+                          radius: 16,
+                          child: Text('${i + 1}', style: const TextStyle(fontSize: 12)),
                         ),
-                      ),
-                      title: Text(seg.streetName),
-                      subtitle: Text(
-                        seg.formattedAddress,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      dense: true,
-                    );
-                  }),
+                        title: Text(seg.streetName),
+                        subtitle: Text(seg.formattedAddress, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        dense: true,
+                      );
+                    }),
+                  ],
 
                   // Tags
-                  if (path.tags.isNotEmpty) ...[
+                  if (contribution.tags.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    Text(
-                      'Tags',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text('Tags', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: path.tags.map((tag) {
+                      children: contribution.tags.map((tag) {
                         return Chip(
                           avatar: Icon(tag.icon, size: 16),
                           label: Text(tag.label),
@@ -287,14 +342,11 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
                   ],
 
                   // Obstacles
-                  if (path.obstacles.isNotEmpty) ...[
+                  if (contribution.obstacles.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    Text(
-                      'Reported Obstacles',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    Text('Reported Obstacles', style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    ...path.obstacles.map((obs) {
+                    ...contribution.obstacles.map((obs) {
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(
@@ -310,18 +362,18 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
 
                   // Metadata
                   const SizedBox(height: 24),
-                  Text(
-                    'Details',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text('Details', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  _buildMetaRow('Created', _formatDateTime(path.createdAt)),
-                  _buildMetaRow('Last Updated', _formatDateTime(path.updatedAt)),
-                  if (path.publishedAt != null)
-                    _buildMetaRow('Published', _formatDateTime(path.publishedAt!)),
-                  if (path.city != null)
-                    _buildMetaRow('City', path.city!),
-                  _buildMetaRow('Version', 'v${path.version}'),
+                  _buildMetaRow('Type', contribution.sourceLabel),
+                  _buildMetaRow('Created', _formatDateTime(contribution.createdAt)),
+                  _buildMetaRow('Last Updated', _formatDateTime(contribution.updatedAt)),
+                  if (contribution.publishedAt != null)
+                    _buildMetaRow('Published', _formatDateTime(contribution.publishedAt!)),
+                  if (contribution.confirmedAt != null)
+                    _buildMetaRow('Confirmed', _formatDateTime(contribution.confirmedAt!)),
+                  if (contribution.city != null)
+                    _buildMetaRow('City', contribution.city!),
+                  _buildMetaRow('Version', 'v${contribution.version}'),
                 ],
               ),
             ),
@@ -332,14 +384,29 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
   }
 
   void _fitBounds() {
-    if (_mapController == null || widget.path.segments.length < 2) return;
+    if (_mapController == null) return;
+    
+    List<LatLng> points = [];
+    
+    // Get points from segments
+    if (_contribution.segments.isNotEmpty) {
+      points = _contribution.segments.map((s) => LatLng(s.lat, s.lng)).toList();
+    } 
+    // Or from polylines
+    else if (_polylines.isNotEmpty) {
+      for (var polyline in _polylines) {
+        points.addAll(polyline.points);
+      }
+    }
+    
+    if (points.length < 2) return;
 
     double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (var seg in widget.path.segments) {
-      if (seg.lat < minLat) minLat = seg.lat;
-      if (seg.lat > maxLat) maxLat = seg.lat;
-      if (seg.lng < minLng) minLng = seg.lng;
-      if (seg.lng > maxLng) maxLng = seg.lng;
+    for (var point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
     }
 
     _mapController!.animateCamera(
@@ -353,6 +420,18 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     );
   }
 
+  Widget _buildSourceChip(ContributionSource source) {
+    final isManual = source == ContributionSource.manual;
+    final color = isManual ? Colors.blue : Colors.purple;
+    final icon = isManual ? Icons.edit_road : Icons.gps_fixed;
+    
+    return Chip(
+      avatar: Icon(icon, size: 16, color: color),
+      label: Text(isManual ? 'Manual Path' : 'Auto-Recorded Trip'),
+      backgroundColor: color.withValues(alpha: 0.1),
+    );
+  }
+
   Widget _buildStatusChip(dynamic status) {
     return Chip(
       label: Text(status.label),
@@ -360,33 +439,28 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     );
   }
 
-  Widget _buildVisibilityChip(PathVisibility visibility) {
+  Widget _buildScoreChip(double score) {
     Color color;
-    String label;
-    IconData icon;
-
-    switch (visibility) {
-      case PathVisibility.published:
-        color = Colors.green;
-        label = 'Public';
-        icon = Icons.public;
-        break;
-      case PathVisibility.flagged:
-        color = Colors.orange;
-        label = 'Flagged';
-        icon = Icons.flag;
-        break;
-      case PathVisibility.private:
-      default:
-        color = Colors.grey;
-        label = 'Private';
-        icon = Icons.lock;
+    if (score >= 75) {
+      color = Colors.green;
+    } else if (score >= 50) {
+      color = Colors.orange;
+    } else {
+      color = Colors.red;
     }
 
     return Chip(
-      avatar: Icon(icon, size: 16, color: color),
-      label: Text(label),
-      backgroundColor: color.withOpacity(0.1),
+      avatar: Icon(Icons.star, size: 16, color: color),
+      label: Text('Score: ${score.toStringAsFixed(0)}'),
+      backgroundColor: color.withValues(alpha: 0.1),
+    );
+  }
+
+  Widget _buildVisibilityChip() {
+    return Chip(
+      avatar: const Icon(Icons.public, size: 16, color: Colors.green),
+      label: const Text('Public'),
+      backgroundColor: Colors.green.withValues(alpha: 0.1),
     );
   }
 
@@ -418,18 +492,12 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
 
   Color _getSeverityColor(int severity) {
     switch (severity) {
-      case 1:
-        return Colors.green.shade200;
-      case 2:
-        return Colors.lime.shade200;
-      case 3:
-        return Colors.yellow.shade300;
-      case 4:
-        return Colors.orange.shade300;
-      case 5:
-        return Colors.red.shade300;
-      default:
-        return Colors.grey;
+      case 1: return Colors.green.shade200;
+      case 2: return Colors.lime.shade200;
+      case 3: return Colors.yellow.shade300;
+      case 4: return Colors.orange.shade300;
+      case 5: return Colors.red.shade300;
+      default: return Colors.grey;
     }
   }
 
@@ -437,21 +505,21 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
     return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  void _editPath() {
+  void _editContribution() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BikePathFormPage(existingPath: widget.path),
+        builder: (_) => BikePathFormPage(existingContribution: _contribution),
       ),
     ).then((_) => Navigator.pop(context));
   }
 
   Future<void> _togglePublish() async {
-    final isPublished = widget.path.visibility == PathVisibility.published;
+    final isPublished = _contribution.isPublished;
     
     try {
-      await ref.read(contributeServiceProvider).togglePublish(
-        widget.path.id,
+      await ref.read(contributionServiceProvider).togglePublish(
+        _contribution.id,
         !isPublished,
       );
       
@@ -459,8 +527,8 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isPublished 
-              ? 'Path moved to drafts' 
-              : 'Path published successfully!'),
+              ? 'Contribution moved to drafts' 
+              : 'Contribution published successfully!'),
           ),
         );
         Navigator.pop(context);
