@@ -1,3 +1,8 @@
+# Environment variables (API keys - DO NOT COMMIT)
+.env
+android/secrets.properties
+ios/Runner/Secrets.xcconfig
+
 # Miscellaneous
 *.class
 *.log
@@ -5,9 +10,11 @@
 *.swp
 .DS_Store
 .atom/
+.build/
 .buildlog/
 .history
 .svn/
+.swiftpm/
 migrate_working_dir/
 
 # IntelliJ
@@ -80,4 +87,3 @@ windows/flutter/generated_plugin_registrant.h
 windows/ephemeral/
 
 # Web
-lib/generated_plugin_registrant.dart

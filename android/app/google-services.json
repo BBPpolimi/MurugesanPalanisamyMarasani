@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "587689362490",
+    "project_id": "best-bike-path-se2",
+    "storage_bucket": "best-bike-path-se2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587689362490:android:bae4e57a5fc26f0aa9a103",
+        "android_client_info": {
+          "package_name": "com.example.bbp_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "587689362490-j2u0pkrm7sltpmnlq7j30kn1occ0muv1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bbp_flutter",
+            "certificate_hash": "d35d6a66433d8e4b63e3c2865fe42265bd5909c6"
+          }
+        },
+        {
+          "client_id": "587689362490-enqf70r1ichlht63vheh561fli3of6hv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvW4NBmeW-i-U6ZYlEnne5U77qpQZdjv4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "587689362490-enqf70r1ichlht63vheh561fli3of6hv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "587689362490-970ev3q1ej0prjmu17pvaml45q4vtl8h.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.bbpFlutter"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
