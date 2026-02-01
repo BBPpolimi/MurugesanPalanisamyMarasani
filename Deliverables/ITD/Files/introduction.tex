@@ -1,0 +1,124 @@
+Cycling has seen accelerated adoption in recent years due to a combination of post-pandemic mobility shifts, increased climate awareness, urban congestion, expanded micro-mobility options and sustained public investment in cycling infrastructure. As a result, cycling is increasingly used for both commuting and daily travel, supported by measurable growth in usage and policy targets aimed at further expansion. However, despite this growth, most widely used navigation tools remain optimized for motor vehicles and do not adequately represent factors that determine cycling safety and comfort, such as surface quality, obstacles, changing conditions, or cyclist-specific risk areas. Consequently, existing maps can indicate where to ride, but not whether a route is suitable or safe for cyclists.
+
+Best Bike Paths (BBP) addresses this gap by providing a cyclist-first navigation system focused on route quality, safety and real-world riding conditions. The application enables users to record and store trips with computed statistics, contribute and validate information about bike paths through manual input and automated trip recording with obstacle detection and search for routes ranked using consolidated quality indicators rather than distance alone. Path conditions are visualized using an explicit scoring model, allowing cyclists to quickly assess comfort and risk, while dynamic updates ensure that changing conditions are reflected over time. BBP also supports guest usage, enabling quick access to bike-friendly routing without mandatory registration.
+
+
+\noindent Best Bike Paths (BBP) is a mobile application system that enables users to:
+\begin{enumerate}
+	\item Record bicycle trips and store them in a personal trip log with computed statistics.
+	\item Contribute information about bike paths, including segment condition and obstacles, through manual reports and confirmed automatic detection.
+ 	\item Query and compare routes between two points, ranking candidate paths based on both route effectiveness (e.g., distance, elevation, turns) and path quality indicators derived from consolidated reports.
+	\item Use the system as guest users to obtain a fast and easy route from point A to point B without requiring registration.
+\end{enumerate}
+
+\subsection{Scope}
+BBP is a mobile first application that interacts with the user's device capabilities (GPS, accelerometer, gyroscope and network connectivity) and integrates external services (maps/routing and weather) to support both individual trip logging and community-maintained bike path information.
+
+The system scope includes:
+
+\begin{enumerate}
+	\item \textbf{User management}
+	\begin{itemize}
+		\item User registration and login.
+		\item Role-based access for administrative features.
+	\end{itemize}
+	\item \textbf{Trip recording and personal log}
+	\begin{itemize}
+		\item Real-time trip tracking using GPS.
+		\item Automatic computation and storage of trip statistics (e.g., distance, duration, average speed).
+		\item Trip saving and review through a personal trip history.
+	\end{itemize}
+	\item \textbf{Optional Trip Enrichment}
+	\begin{itemize}
+		\item Retrieval and attachment of weather information to trips when the weather service is reachable.
+	\end{itemize}
+	\item \textbf{Manual Bike Path Contributions}
+	\begin{itemize}
+		\item Manual input of bike path information, including streets/segments, segment condition/status, and obstacles.
+		\item Ability to edit or remove user-submitted reports as allowed by permissions.
+	\end{itemize}
+	\item \textbf{Automatic Aquistion of Bike Path Data}
+	\begin{itemize}
+		\item Collection of GPS traces and sensor events (accelerometer/gyroscope) during trip recording when automatic mode is enabled.
+		\item Detection of candidate issues (e.g., potholes/roughness indicators) based on sensor patterns.
+	\end{itemize}
+	\item \textbf{User Confirmation Workflow}
+	\begin{itemize}
+		\item Presentation of automatically detected candidate issues after a trip.
+		\item User confirmation, rejection, or correction of detected issues before they are stored as publishable path reports.
+	\end{itemize}
+	\item \textbf{Path Search and visualization for all Users}
+	\begin{itemize}
+		\item Route search between origin and destination for guest and registered users.
+		\item Ranking of candidate routes by a path score that combines route effectiveness (e.g., distance/elevation/turns) and path quality (segment status and obstacles).
+		\item Map-based visualization of selected routes with overlays for segment condition and reported obstacles.
+	\end{itemize}
+	\item \textbf{Report merging and consolidated status}
+	\begin{itemize}
+		\item Periodic merging of multiple user's reports into consolidated segment status information, applying freshness and majority/weighted-majority logic.
+	\end{itemize}
+	\item \textbf{Administration and data quality controls}
+	\begin{itemize}
+		\item Administrative ability to block users who repeatedly submit false data.
+		\item Administrative ability to remove or hide problematic reports/obstacles and keep the consolidated data consistent.
+	\end{itemize}
+\end{enumerate}
+
+
+\subsection{Definitions, Acronyms, Abbreviations}
+\subsubsection{Definitions}
+
+\begin{enumerate}
+  \item \textbf{Flutter}:  A cross-platform UI framework used to build native mobile apps from a single codebase (Android and iOS). In BBP it is used to implement UI elements and access to device sensors through plugins. 
+  
+  \item \textbf{Firebase/FlutterFire}: Firebase is Google's backend platform. FlutterFire is the official set of Flutter plugins to use Firebase services. In BBP it provides authentication, database, file storage, server-side logic and (optionally) push notifications.
+
+  
+  \item \textbf{MapService(RoutesAPI)}: An external mapping service providing geocoding (address → coordinates) and routing (candidate routes between two points). In BBP it is used during route search (UC6) to generate candidate routes that the system then scores using internal path-quality data.
+  
+  \item \textbf{Weather Service}: An external API used to retrieve weather conditions for a given location and time. In BBP it enriches recorded trips with contextual information when the service is reachable (UC3).
+  
+  \item \textbf{GPS Location Provider}: A recorded ride by a registered user including GPS track and computed statistics.The device capability that provides geographic coordinates over time. In BBP it enables real-time trip tracking and supports associating sensor events with positions.
+
+\end{enumerate}
+
+% \subsubsection{Acronyms}
+% \begin{enumerate}
+
+% \end{enumerate}
+
+% \subsubsection{Abbreviations}
+% \begin{enumerate}
+
+% \end{enumerate}
+
+
+
+\subsection{Reference Documents}
+The assignment for this document and all the information included refer to the following documentation:
+\begin{enumerate}
+    \item The specification for the 2025/26 I\&T for the Software Engineering II course.
+    \item The slides on the webeep page of the Software Engineering II course.
+    \item RASD and DD documents for the Best Bike Paths (BBP) project.
+
+    
+\end{enumerate}
+
+\subsection{Document Structure}
+This document is organized as follows:
+\begin{enumerate}
+\item \textbf{Introduction:} 
+
+\item \textbf{Implemented Features and Requirements }
+
+\item \textbf{Technologies, Frameworks and External Services:} 
+
+\item \textbf{Source Code Structure:} 
+
+\item \textbf{Testing Strategy and Results:} 
+
+\item \textbf{Effort Spent:} 
+
+\item \textbf{References:} 
+
+\end{enumerate}

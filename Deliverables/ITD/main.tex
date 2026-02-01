@@ -1,0 +1,188 @@
+\documentclass[11pt, twoside]{article}
+\input{commandsFile}
+\raggedbottom 
+\begin{document}
+
+%====================================================
+% TITLE PAGE
+%====================================================
+\begin{titlepage}
+\begin{center}
+
+% Logo
+\vspace*{1cm}
+\includegraphics[scale=0.5]{Images/PolimiLogo}
+
+\vspace{1cm}
+
+% University name
+{\Large \textbf{POLITECNICO DI MILANO}}\\
+\vspace{0.2cm}
+{\large 1863}
+
+\vspace{1.2cm}
+
+% Degree and course
+{\Large \textbf{Computer Science and Engineering}}\\
+\vspace{0.3cm}
+{\Large \textbf{Software Engineering II}}\\
+\vspace{0.3cm}
+{\large 2025 -- 2026}
+
+\vspace{1.5cm}
+
+% Document type
+{\Huge \textbf{ITD}}\\
+\vspace{0.4cm}
+{\Large \textbf{Implementation Testing Document}}\\
+\vspace{0.3cm}
+{\large \textbf{\textit{Best Bike Paths(BBP)}}}
+\vspace{2cm}
+
+% Project and authors
+{\large
+\textbf{By}\\
+\vspace{0.2cm}
+Jayasurya Marasani (11023924)\\
+Arunkumar Murugesan (11051547)\\
+Sneharajalakshmi Palanisamy (11132155)
+}
+\vspace{1cm}
+
+\noindent\begin{minipage}{\textwidth}
+{\large
+\textbf{Links}
+\begin{enumerate}
+    \item \textbf{Installation guide:} \url{https://github.com/BBPpolimi/MurugesanPalanisamyMarasani/blob/main/INSTALLATION_GUIDE.md}
+    \item \textbf{Source code repository:} \url{https://github.com/BBPpolimi/MurugesanPalanisamyMarasani/}
+    \item \textbf{Android APK:} \url{}
+    \item \textbf{iOS IPA:} \url{}
+\end{enumerate}
+}
+
+\end{minipage}
+
+
+\vspace{1cm}
+
+\end{center}
+\end{titlepage}
+
+
+%Define deliverable specific info
+%Replace cell contents where needed
+\begin{table}[h!]
+\begin{tabu} to \textwidth { X[0.3,r,p] X[0.7,l,p] }
+\hline
+
+\textbf{Deliverable:} & ITD\\
+\textbf{Title:} & Implementation Testing Document for Best Bike Paths (BBP)\\
+\textbf{Authors:} & Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy \\
+\textbf{Version:} & 1.0 \\ 
+\textbf{Date:} & 01 February 2026 \\
+\textbf{Download page:} & https://github.com/BBPpolimi/MurugesanPalanisamyMarasani \\
+\textbf{Copyright:} & Copyright © 2026, Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy – All rights reserved \\
+\hline
+\end{tabu}
+\end{table}
+
+
+
+
+\setcounter{page}{2}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\newpage
+\addcontentsline{toc}{section}{Table of Contents}
+\tableofcontents
+\newpage
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Introduction}}}
+\label{sect:introduction}
+\input{Files/introduction}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Implemented Features and Requirements}}}
+\label{sect:implemented_features_requirements_coverage}
+\input{Files/requirements_functions_coverage.tex}  
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Technologies, Frameworks and External Services}}}
+\label{sect:technologies_frameworks_external_services}
+\input{Files/tech_frameworks_services.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Source Code Structure}}}
+\label{sect:source_code_Structure}
+\input{Files/source_code.tex}
+
+\clearpage
+{\color{Blue}{\section{Testing Strategy and Results
+}}}
+\label{sect:testing_strategy_results}
+\input{Files/testing_strategy_results.tex}
+
+\clearpage
+{\color{Blue}{\section{Installation Instructions/Prerequisites}}}       
+\label{sect:installation_instruction_prerequisites}
+\input{Files/installation_prerequisites.tex}
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Effort Spent}}}
+\label{sect:effort}
+\input{Files/effort}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\addcontentsline{toc}{section}{References}
+% \bibliographystyle{plain}
+
+% \bibliography{main}
+
+\begin{thebibliography}{99}
+\bibitem{flutterdocs}
+Flutter.
+\newblock \emph{Flutter documentation}.
+\newblock Available at: \url{https://docs.flutter.dev/}.
+
+\bibitem{firebase}
+\newblock \emph{Firebase Authentication: }\url{https://firebase.google.com/docs/auth}
+
+\bibitem{firebase Database}
+\newblock \emph{Firebase Realtime Database: }\url{https://firebase.google.com/docs/database}
+\bibitem{Google Maps APIs}
+\newblock \emph{Google Maps Platform APIs: }\url{https://developers.google.com/maps/documentation}
+\bibitem{OpenWeather}
+\newblock \emph{OpenWeather API: }\url{https://openweathermap.org/api}
+
+
+\bibitem{chatgpt}
+OpenAI.
+\newblock \textit{ChatGPT (used for paraphrasing)}.
+\newblock \url{https://chatgpt.com}.
+
+\bibitem{overleaf}
+Overleaf.
+\newblock \textit{Overleaf: Online \LaTeX\ Editor}.
+\newblock \url{https://www.overleaf.com/}.
+
+
+\end{thebibliography}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+\end{document}

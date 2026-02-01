@@ -1,0 +1,229 @@
+\subsection{Source Code Structure}
+The BBP prototype is organized as a Flutter application with a clear separation
+between UI, state management, business logic and data models. The \texttt{lib/}
+folder contains the production code and it is structured to support
+maintainability, testability and modular growth.
+
+\begin{verbatim}
+lib/
+|____ main.dart
+|____ models/
+|____ pages/
+|____ services/
+|____ utils/
+|____ widgets/
+\end{verbatim}
+
+\subsubsection{main.dart (application entry point)}
+
+\texttt{main.dart} is the application entry point. It initializes the app configuration,
+global theme, routing setup and the authentication wrapper that decides whether the user
+sees the login flow or the main application shell based on session state.
+
+Typical responsibilities include:
+\begin{itemize}
+  \item App startup and dependency initialization
+  \item Theme configuration and global UI settings
+  \item Root navigation setup and authentication gating
+  \item Wiring Riverpod scopes that enable dependency injection across the widget tree
+\end{itemize}
+
+\subsubsection{models/ (data layer, 22 models)}
+
+The \texttt{models/} directory defines the domain and data transfer objects used
+across the application. These classes encapsulate the structure of application data
+stored in Firestore and Storage and the in-memory objects used by services and UI.
+
+Some key models:
+\begin{itemize}
+  \item \texttt{app\_user.dart}\\
+  Represents the authenticated user and role flags used for authorization decisions.
+  \item \texttt{trip.dart}\\
+  Represents a recorded trip including metadata, statistics and references to recorded traces.
+  \item \texttt{bike\_path.dart} and \texttt{contribution.dart}\\
+  Represent manual contributions and the data needed to publish or keep private.
+  \item \texttt{obstacle.dart} and \texttt{candidate\_issue.dart}\\
+  Represent reported obstacles and automatically detected candidate issues that require user confirmation.
+  \item \texttt{ranked\_route.dart}\\
+  Represents scored route results and the breakdown used for route comparison.
+\end{itemize}
+
+Design goals of the model layer:
+\begin{itemize}
+  \item Keep a single source of truth for data shapes used across UI and services
+  \item Support serialization and deserialization for Firestore documents
+  \item Minimize business logic in models and keep logic inside services and utilities
+\end{itemize}
+
+\subsubsection{pages/ (presentation layer, 16 pages)}
+
+The \texttt{pages/} directory contains the main application screens that implement the
+user journeys described by the use cases. Each page focuses on presentation
+responsibilities and delegates computation, persistence and integration work to services.
+
+Some key pages:
+\begin{itemize}
+  \item \texttt{login\_page.dart}\\
+  Implements authentication entry points and guest access.
+  \item \texttt{home\_page.dart}\\
+  Provides the dashboard and navigation entry to primary features.
+  \item \texttt{record\_trip\_page.dart}\\
+  Implements the trip recording experience with live map and statistics.
+  \item \texttt{route\_search\_page.dart}\\
+  Implements origin and destination search then route listing and selection.
+  \item \texttt{contribute\_page.dart}\\
+  Implements manual contribution creation and editing.
+  \item \texttt{admin\_review\_page.dart}\\
+  Implements administrative moderation workflows.
+\end{itemize}
+
+Design goals of the pages layer:
+\begin{itemize}
+  \item Keep pages mostly declarative and reactive
+  \item Drive UI from state exposed by providers
+  \item Avoid direct backend calls inside widgets and pages
+\end{itemize}
+
+
+\subsubsection{services/ (application logic layer, 18 services)}
+
+The \texttt{services/} directory contains the business logic of the application.
+Services implement the core use cases and coordinate access to Firebase and
+external APIs. Services are injected into the UI via Riverpod providers.
+
+Key services include:
+\begin{itemize}
+  \item \texttt{providers.dart}\\
+  Defines Riverpod providers that expose services and derived state.
+  \item \texttt{auth\_service.dart}\\
+  Manages authentication flows, session state and role resolution.
+  \item \texttt{trip\_service.dart}\\
+  Manages trip recording lifecycle and persistence of trip artifacts.
+  \item \texttt{contribution\_service.dart}\\
+  Implements CRUD for user contributions and publishability rules.
+  \item \texttt{route\_search\_service.dart}\\
+  Orchestrates route search requests and candidate route retrieval.
+  \item \texttt{route\_scoring\_service.dart}\\
+  Applies scoring logic and generates ranked routes for presentation.
+  \item \texttt{merge\_service.dart}\\
+  Implements merging logic for consolidated segment status and conflict resolution.
+  \item \texttt{admin\_service.dart}\\
+  Implements moderation operations such as blocking users and removing data.
+\end{itemize}
+
+Design goals of the services layer:
+\begin{itemize}
+  \item Centralize business rules and keep the UI thin
+  \item Provide stable interfaces for pages and widgets
+  \item Isolate side effects such as network calls and persistence operations
+  \item Make logic testable through dependency injection and mocking
+\end{itemize}
+
+\subsubsection{utils/ (shared utilities and algorithms)}
+
+The \texttt{utils/} directory contains stateless helper code that is reused across
+services and UI.
+
+Key utilities include:
+\begin{itemize}
+  \item \texttt{scoring.dart}\\
+  Implements route scoring and quality weighting functions.
+  \item \texttt{polyline\_utils.dart}\\
+  Utility helpers for route geometry and polyline processing.
+\end{itemize}
+
+Design goals of the utils layer:
+\begin{itemize}
+  \item Keep algorithms deterministic and independent from UI
+  \item Enable unit testing for scoring and geometry logic
+\end{itemize}
+
+\subsubsection{widgets/ (reusable UI components)}
+
+The \texttt{widgets/} directory contains reusable UI building blocks used across
+pages. These widgets encapsulate repeated UI patterns such as cards, list tiles
+and map overlays while keeping business logic outside the widget itself.
+
+Design goals of the widgets layer:
+\begin{itemize}
+  \item Promote consistency across screens
+  \item Reduce duplication
+  \item Keep widgets focused on presentation
+\end{itemize}
+
+\subsection{Application architecture}
+The application follows a layered architecture that separates presentation, state management, business logic and data. This structure reduces coupling, improves testability and supports incremental extension.
+\subsubsection{Layered decomposition}
+
+\begin{enumerate}
+  \item \textbf{Presentation layer}\\
+  Implemented by \texttt{pages/} and \texttt{widgets/}. Screens render UI and react to
+  changes in state. Pages do not implement persistence or API logic directly.
+
+  \item \textbf{State management layer}\\
+  Implemented using Riverpod providers defined in \texttt{services/providers.dart}.
+  Pages consume providers through \texttt{ref.watch} and trigger actions through
+  \texttt{ref.read}. Providers supply:
+  \begin{itemize}
+    \item application state such as current user and role
+    \item service instances such as TripService and RouteScoringService
+    \item derived state such as selected trip, current recording state and ranked routes
+  \end{itemize}
+
+  \item \textbf{Service layer}\\
+  Implemented by the service classes in \texttt{services/}. Services contain the
+  application logic for:
+  \begin{itemize}
+    \item authentication and authorization checks
+    \item trip lifecycle and statistics computation
+    \item contribution management and publishability handling
+    \item candidate issue confirmation workflow
+    \item route search orchestration and scoring
+    \item merging and consolidated status computation
+    \item moderation operations and audit logging when applicable
+  \end{itemize}
+
+  \item \textbf{Data and domain layer}\\
+  Implemented by \texttt{models/}. Models define the data structures exchanged
+  between services and persisted in backend storage.
+
+  \item \textbf{External services layer}\\
+  The app integrates with:
+  \begin{itemize}
+    \item Firebase Authentication for identity and session management
+    \item Cloud Firestore for structured data
+    \item Cloud Storage for large artifacts such as GPS traces
+    \item Google Maps Platform APIs for maps rendering, geocoding, places and routing
+    \item OpenWeather API for optional weather enrichment
+  \end{itemize}
+\end{enumerate}
+
+\subsubsection{Dependency direction and responsibilities}
+The dependency direction is intentionally one way:
+\begin{itemize}
+    \item Pages and widgets depend on providers and services
+    \item Providers depend on services
+    \item Services depend on models, utils and external services
+    \item Models and utils do not depend on UI code
+\end{itemize}
+This keeps low level code independent and reusable. It also allows tests to isolate the service layer by replacing external dependencies with fakes or mocks.
+
+\subsubsection{How the architecture supports the main feature threads}
+\begin{enumerate}
+    \item \textbf{Authentication and session gating}\\
+        \texttt{main.dart} hosts the auth wrapper that selects the correct start screen. \texttt{AuthService} exposes user session state and role metadata through providers that pages can consume.
+
+    \item \textbf{Trip recording and persistence}\\
+        \texttt{RecordTripPage} renders live UI while \texttt{TripService} manages the recording lifecycle, GPS sampling and statistics updates. Persistence and retrieval are handled by the same service layer so the UI remains stateless beyond reactive state updates.
+
+    \item \textbf{Manual contribution and publishability}\\ Contribution pages collect user input and delegate validation and persistence to  \\\texttt{ContributionService}. Publishability is treated as a first class attribute and services enforce the difference between private and publishable data.
+
+    \item \textbf{Automatic detection review}\\ Sensor derived candidate issues are produced by the appropriate service and displayed in a review page. Confirmation and correction are performed by the user and services convert confirmed items into stored reports.
+
+    \item \textbf{Route search, scoring and visualization}\\ Route search pages request candidate routes through \texttt{RouteSearchService}. Scoring is computed in \texttt{RouteScoringService} which calls scoring utilities and uses consolidated data from persistence services. Results are returned as \texttt{RankedRoute} models for consistent UI rendering.
+
+    \item \textbf{Merging and consolidated status}\\
+        \texttt{MergeService} implements conflict resolution logic using freshness and majority rules. Consolidated status data is then consumed by scoring so that community reports influence route ranking.
+
+    \item \textbf{Administration and moderation}\\ Admin pages call \texttt{AdminService} which applies role checks and performs moderation actions such as blocking users and removing problematic contributions.
+\end{enumerate}

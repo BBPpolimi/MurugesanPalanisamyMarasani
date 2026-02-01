@@ -1,0 +1,203 @@
+\subsection{Testing Strategy Overview}
+Testing was performed using a multi layer strategy as shown in Fig.~\ref{fig:testing_pyramid} that combines fast automated checks with device level end to end validation. The objective was to achieve high confidence on correctness of the core feature threads while keeping the feedback loop short during development.
+
+The adopted strategy follows a testing pyramid with five complementary categories:
+\begin{enumerate}
+    \item \textbf{Unit tests} validate business rules, model serialization and algorithmic components such as merging and scoring. These tests are fast, deterministic and run without a device.
+    \item \textbf{Widget tests} validate UI rendering, navigation and user interactions with mocked dependencies.
+    \item \textbf{Integration tests} on real devices execute the real app and validate full user journeys across pages and services.
+    \item \textbf{Security tests} validate role based restrictions and access rules such as guest limitations, owner only access and admin only operations.
+    \item \textbf{Performance tests} validate that critical operations such as route scoring and merging stay within acceptable runtime on a reference device profile.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\textwidth]{Images/Testing_Pyramid.png}
+  \caption{Testing Strategy Overview}
+  \label{fig:testing_pyramid}
+\end{figure}
+This structure ensures broad coverage across the application while keeping most tests fast and stable. End to end tests are slower and are used to validate real device behavior such as GPS sampling, sensor availability and network variability.
+
+
+\subsection{Main system test cases and outcomes}
+System testing validates BBP as a whole using use cases as scenarios. These tests were executed on a real device to stay close to production conditions for GPS, sensors and external APIs. Each test case is described with steps, expected result and observed outcome.
+\begin{enumerate}
+    \item \textbf{UC1 User registration}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item App installed and launched
+                    \item No active authenticated session
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Open the app
+                    \item Navigate to registration
+                    \item Enter required fields
+                    \item Submit registration
+                    \item Verify transition to authenticated experience
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item A new user account is created
+                    \item The user is authenticated and can access registered user features
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+    \item \textbf{UC2 Login and blocked user handling}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item Existing user account exists
+                    \item For the blocked scenario an admin has marked the user as blocked
+
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Open the app
+                    \item Login with valid credentials
+                    \item Verify access to authenticated pages
+                    \item Repeat with a blocked user account
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Valid users can login successfully
+
+                    \item Blocked users are denied access to protected operations and are redirected to a safe state
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+
+    \item \textbf{UC3 Record and persist a trip}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item User is logged in
+                    \item Location Permission is granted
+                    \item GPS is available
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Start trip recording
+                    \item Move for a short route and collect GPS Points
+                    \item Stop Recording
+                    \item Open trip history
+                    \item Open trip details for the newly recorded trip
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Trip metadata and statistics are stored
+                    \item GPS trace artifacts are stored appropriately
+                    \item Trip appears in history and details view loads correctly with map visualization
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+    \item \textbf{UC4 Manual Path Contribution and Publishable and private visibility}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item User is logged in
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Open manual contribution flow
+                    \item Create a segment status and an obstacle report
+                    \item Mark the contribution as publishable
+                    \item Verify that the contribution is visible in public community views
+                    \item Create another contribution and mark it as private
+                    \item Verify that private data is visible only to the owner
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Publishable contributions appear in community collections
+                    \item Private contributions remain restricted to the owner and do not affect public consolidated data
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+    \item \textbf{UC5 Automatic Trip Recording}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item User is logged in
+                    \item Automatic mode is enabled
+                    \item Device sensors are available
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Start trip recording in automatic mode
+                    \item Record a trip that triggers candidate detections
+                    \item Stop recording
+                    \item Open the review screen
+                    \item Confirm a subset of candidates
+                    \item Reject or edit the remaining candidates
+                    \item Finalize the review
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Confirmed items become stored reports and obstacles
+                    \item Rejected items produce no published artifacts
+                    \item Edited items are stored with the corrected attributes
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+
+    \item \textbf{UC6 Route Search with Path Scoring and Visualization}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item App has network connectivity for routing calls
+                    \item Consolidated status data is available in the database
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Open route search
+                    \item Enter origin and destination using place search
+                    \item Request routes
+                    \item Verify that multiple routes are returned when available
+                    \item Verify that routes are ordered by score
+                    \item Open map overlays for a selected route and inspect markers and polylines
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Candidate routes are returned
+                    \item Scoring uses consolidated segment statuses and obstacles
+                    \item Route list ordering is consistent with computed scores
+                    \item Visualization correctly displays route geometry and related overlays
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+
+    \item \textbf{UC7 Merging and Consolidated status}
+        \begin{itemize}
+            \item \textbf{Preconditions}
+                \begin{itemize}
+                    \item Multiple publishable reports exist for the same segment including conflicting statuses
+                    \item Reports include different timestamps to exercise freshness handling
+                \end{itemize}
+            \item \textbf{Steps}
+                \begin{enumerate}
+                    \item Seed or submit multiple publishable reports for the same segment
+                    \item Trigger merge through the available mechanism in the prototype
+                    \item Query or display the consolidated result
+                    \item Perform a route search that depends on the merged segment
+                \end{enumerate}
+            \item \textbf{Expected Result}
+                \begin{itemize}
+                    \item Freshness handling favors newer information where applicable
+                    \item Majority or weighted majority resolves conflicts consistently
+                    \item Consolidated read model is updated and used by scoring
+                \end{itemize}
+            \item \textbf{Outcome:} Pass
+        \end{itemize}
+\end{enumerate}
+
+\subsection{System test limitations and Mitigations}
+System tests involve components that are inherently variable such as GPS accuracy, sensor sensitivity and external API responsiveness. The following limitations were observed and mitigated:
+\begin{itemize}
+    \item \textbf{Emulator constraints:} GPS and sensor behavior can be unrealistic on some emulators. Mitigation: system tests were executed on a real device for GPS and sensor dependent cases.
+    \item \textbf{API quotas and latency:} Routing and weather calls can fail due to rate limits or temporary network issues. Mitigation: integrations are treated as best effort where appropriate and failures are handled gracefully without corrupting core trip data.
+    \item \textbf{Sensor variability across devices:} thresholds that trigger candidate issues can vary with hardware. Mitigation: the workflow requires user confirmation before publication which prevents false positives from affecting consolidated data.
+\end{itemize}
+
+
+All core system test scenarios corresponding to the main use cases passed. Automated unit, widget, security and performance tests provided continuous regression protection during development while device integration tests and system tests validated end to end behavior in realistic conditions.

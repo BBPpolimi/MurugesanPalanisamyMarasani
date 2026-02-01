@@ -1,0 +1,122 @@
+The following are the technologies adopted for the BBP application and motivates the main choices. The selected stack prioritizes rapid delivery of a stable mobile application, strong integration with device capabilities such as GPS and sensors and reduced operational overhead for backend services.
+
+\subsection{Programming Languages}
+\subsubsection{Client: Flutter mobile application (Dart)} 
+Flutter was selected to implement a single mobile client for Android and iOS while maintaining a consistent user experience across platforms. Dart is the native language of Flutter and supports a reactive UI model and efficient asynchronous programming which is essential for GPS streaming, sensor sampling and network calls. 
+\begin{itemize}
+    \item \textbf{Advantages: }
+    \begin{enumerate}
+        \item \textbf{Single codebase for Android and iOS} which reduces duplicated effort and improves feature parity.
+        \item \textbf{Fast UI development} through a rich widget library and hot reload which accelerates iteration on screens such as trip recording, trip details, contribution forms and route search.
+        \item \textbf{Strong ecosystem} with mature packages for Firebase integration, maps rendering, GPS access and sensor access.
+        \item \textbf{Good support for reactive UI patterns} which helps keep the UI synchronized with live trip recording state and asynchronous backend updates.
+        \item \textbf{Type safety and null safety} which reduce runtime errors and improve maintainability in the application integrate multiple services.
+    \end{enumerate}
+    \item \textbf{Disadvantages: }
+        \begin{enumerate}
+            \item \textbf{Learning curve:} The stack requires mastery of specific state and lifecycle patterns.
+            \item \textbf{Performance pitfalls: } presents potential performance risks if state management is undisciplined on map-heavy screens.
+            \item \textbf{Plugin variability} third-party plugin variability can lead to inconsistent sensor or background location behavior across different devices. 
+        \end{enumerate}
+\end{itemize} 
+
+\subsubsection{Backend: Firebase server-side logic (Cloud Functions)}
+Firebase services were selected to implement the backend with minimal operational burden. Cloud Functions are used to centralize protected operations and to keep sensitive logic off the client when appropriate.
+
+\begin{itemize}
+    \item \textbf{Advantages}
+        \begin{enumerate}
+            \item \textbf{Managed execution environment:} eliminates server provisioning and maintenance.
+            \item \textbf{Centralized enforcement:} for protected operations such as validation, scoring and data consolidation.
+            \item \textbf{Security and key protection} by enabling API calls and business rules to run server side rather than on the client.
+            \item \textbf{Scalability} that fits an application that may face variable load patterns.
+        \end{enumerate}
+    \item \textbf{Drawbacks}
+        \begin{enumerate}
+            \item \textbf{Local debugging complexity} compared to a traditional monolithic backend.
+            \item \textbf{Cold start latency} that can affect the first invocation of infrequently used functions.
+            \item \textbf{Vendor lock} in because the backend uses Firebase and Google Cloud primitives.
+        \end{enumerate}
+\end{itemize}
+
+
+\subsection{Middleware and platform services}
+BBP adopts a serverless backend built on the Firebase ecosystem:
+\begin{enumerate}
+    \item \textbf{Firebase Authentication:} Provides user identity, session management and role based access patterns used to distinguish guest, registered users and admin operations.
+    \item \textbf{Cloud Firestore:} Stores structured application data such as user profiles, trip metadata, contributions, obstacles and consolidated path information.
+    \item \textbf{Firebase Cloud Storage:} Stores large artifacts such as dense GPS traces, obstruction information where applicable.
+    \item \textbf{Cloud Functions and Cloud Scheduler:} Cloud Functions encapsulate protected operations and external integrations. Cloud Scheduler is included as the platform mechanism for periodic tasks. In the application periodic consolidation is not relied upon for correctness because merging is triggered on demand when publishable contributions change.
+\end{enumerate}
+
+\begin{itemize}
+    \item \textbf{Advantages:}
+        \begin{enumerate}
+            \item \textbf{Low operational overhead} because infrastructure is managed.
+            \item \textbf{Scalability} without manual capacity planning.
+            \item \textbf{Security separation} between client code and protected backend logic.
+            \item \textbf{Pay per use cost model} that is appropriate for an application.
+        \end{enumerate}
+    \item \textbf{Drawbacks:}
+        \begin{enumerate}
+            \item \textbf{Tighter coupling} to Firebase services and data model conventions.
+            \item \textbf{Need for careful security rules} and strict function authorization to avoid privilege escalation and data leakage.
+            \item \textbf{Emulator setup and configuration complexity} during development and testing, especially when validating auth, database rules and function triggers.
+        \end{enumerate}
+
+\end{itemize}
+
+\subsection{External APIs and Integrations}
+External services are used to support routing, map visualization, place search and optional weather enrichment. Integrations are designed to control rate limits, manage failures gracefully and keep the user experience stable when external services are temporarily unavailable. 
+\begin{enumerate}
+    \item \textbf{Google Maps Platform APIs:}
+        \begin{enumerate}
+            \item \textbf{Maps SDK for Android:} Used for native map rendering on Android through the Flutter Google Maps plugin. It supports map interaction, markers and polylines.
+            \item \textbf{Maps SDK for iOS:} Used for native map rendering on iOS through the same Flutter plugin. It provides feature parity with Android map visualization.
+            \item \textbf{Directions API:} Used to compute candidate routes between origin and destination and to obtain route geometry that can be displayed as polylines.
+            \item \textbf{Routes API:} Used as an additional routing interface where applicable, particularly for retrieving route alternatives and structured route details suitable for scoring.
+            \item \textbf{Places API:} Used to support location search and place lookup, typically for origin and destination input and for improving usability over raw coordinate entry.
+        \end{enumerate}
+
+        \begin{itemize}
+            \item \textbf{Advantages of Google Maps APIs}
+                \begin{enumerate}
+                    \item High quality base map data and routing results.
+                    \item Mature SDKs with strong documentation and stable behavior.
+                    \item Consistent geospatial primitives that simplify route visualization and interaction. 
+                \end{enumerate}
+            \item \textbf{Drawbacks of Google Maps APIs}
+                \begin{enumerate}
+                    \item Quotas and billing constraints which require careful request management.
+                    \item Network dependency which affects routing and place lookup when connectivity is limited.
+                    \item Policy constraints on caching and data usage which influence how much data can be stored locally.
+                \end{enumerate}
+        \end{itemize}
+
+    \item \textbf{OpenWeather API} \\
+    OpenWeather API is used to enrich recorded trips with a weather snapshot such as temperature, wind and conditions when the service is reachable.
+        \begin{itemize}
+            \item \textbf{Advantages}
+                \begin{enumerate}
+                    \item Improves trip context with minimal impact on core correctness.
+                    \item Simple REST interface and predictable response structure.
+                    \item Failures degrade gracefully by storing the trip without weather data.
+                    \item Weather enrichment is performed on a best-effort basis and does not impact trip persistence.
+                \end{enumerate}
+            \item \textbf{Disadvantages}
+                \begin{enumerate}
+                    \item External dependency and rate limits.
+                    \item Potential mismatches between weather timestamp granularity and trip timestamps.
+                \end{enumerate}
+        \end{itemize}
+    \item \textbf{Supporting client libraries and packages} \\
+        To implement these integrations and device features the application uses supporting libraries such as:
+        \begin{itemize}
+                \item A state management framework for reactive UI updates and dependency injection
+                \item A robust HTTP client with interceptors and timeouts
+                \item GPS location packages for streaming updates and permission handling
+                \item Sensor packages for accelerometer and gyroscope sampling
+                \item Polyline utilities for rendering route geometry on the map
+        \end{itemize}
+                These libraries were chosen to reduce repetitive code, improve testability and provide stable abstractions over platform specific behavior.
+\end{enumerate}

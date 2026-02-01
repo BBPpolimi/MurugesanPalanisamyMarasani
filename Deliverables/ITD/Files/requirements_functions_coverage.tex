@@ -1,0 +1,194 @@
+\subsection{Core Functions Implementation}
+The implemented application deliberately focuses on the minimum coherent feature set required to validate the BBP goals end to end, provide immediate user value and reduce architectural risk early, particularly for GPS tracking, sensor handling, route computation and scoring and contribution merging. This choice prioritizes stable and testable flows over breadth and it ensures that all implemented features form a consistent pipeline from data collection to route recommendation.
+
+\subsubsection{ Account management (F1, UC1 to UC2, R1 to R2)}
+The system implements a robust authentication layer, utilizing a managed identity provider and dedicated service architecture, to facilitate secure user registration, login, and session persistence. This foundation enables the application to link user-generated content, such as trips and contributions, to a stable identity while enforcing critical access control policies. Key motivations for its inclusion include:
+\begin{itemize}
+    \item \textbf{Data Attribution: }Provides the necessary infrastructure to store and query personal trip history on a per-user basis.
+    \item \textbf{System Integrity: }Enables community moderation features, such as admin privileges and blocked user restrictions, to ensure data quality.
+    \item \textbf{Security Architecture:} Establishes consistent authorization rules early in the lifecycle, allowing for reliable end-to-end testing of user-scoped data persistence.
+\end{itemize}
+
+
+\subsubsection{ Trip recording (F2, UC3, R3 to R5)}
+Registered users can initiate and terminate trip recording, during which the system samples GPS coordinates to manage a recording state machine while simultaneously computing real-time statistics like distance, duration, and speed. This functionality fulfills the requirements for data acquisition and provides the following strategic advantages:
+\begin{itemize}
+    \item \textbf{User Value:} Offers immediate utility through personal activity tracking.
+    \item \textbf{Feature Integration:} Acts as a technical prerequisite for the sensor-assisted workflow and automated issue detection.
+    \item \textbf{Risk Mitigation:} Stabilizes the high-risk complexities of GPS handling, including permission models and background constraints, early in the development cycle.
+\end{itemize}
+
+\subsubsection{Trip persistence and history with details (F3, U3(partial), R4 to R6)}
+Registered users can save trip metadata and access a history list that features detailed map visualizations and stored statistics for each journey. The application facilitates ongoing history management through renaming and deletion capabilities, transforming transient recordings into a permanent user record while serving the following purposes:
+\begin{itemize}
+    \item \textbf{Data Lifecycle:} Validates the end-to-end data flow by exercising backend storage, querying, and UI rendering.
+    \item \textbf{Utility:} Ensures the application provides consistent value through personal record-keeping, independent of community feature engagement.
+    \item \textbf{User Experience:} Maintains a usable and organized interface for long-term activity tracking.
+\end{itemize}
+
+\subsubsection{Optional weather enrichment (F4,UC3(extension) and R7)}
+Registered users receive weather snapshots attached to their stored trips via an external provider, provided the service responds within acceptable time limits. This enrichment operates as a best-effort, optional process that leaves the core trip record valid and complete even if the external service is unavailable, fulfilling the following objectives:
+\begin{itemize}
+    \item \textbf{Contextual Value:} Enhances trip records with environmental data without compromising the integrity of the primary recording flow.
+    \item \textbf{System Resilience:} Serves as a practical implementation of graceful degradation, ensuring the application remains functional during external service outages.
+    \item \textbf{External Integration:} Demonstrates a controlled integration pattern with third-party APIs through time-bound and error-tolerant communication.
+\end{itemize}
+
+\subsubsection{Manual path contributions (F5, UC4, R8 to R12 and R24(Partial))}
+Registered users can generate manual contributions by assessing path segment statuses and reporting specific obstacles, with the flexibility to mark entries as either private or publishable. Users maintain full control over their data through editing capabilities, ensuring a strict distinction between personal notes and community-shared information while achieving the following:
+\begin{itemize}
+    \item \textbf{Community Bootstrapping:} Provides the foundational data necessary to build and maintain shared knowledge regarding bike path conditions.
+    \item \textbf{Data Integrity:} Supplies the essential inputs for downstream merging processes and route quality scoring.
+    \item \textbf{Privacy and Trust:} Ensures compliance and user autonomy by restricting consolidated public statuses to only those contributions explicitly marked for publication.
+\end{itemize}
+
+\subsubsection{Automatic detection review (F6, UC5, R13 to R18)}
+Registered users can utilize an automatic mode that logs sensor data to detect candidate anomalies, which are then presented on a review screen for confirmation, rejection, or correction. This process establishes a controlled pipeline that transforms raw sensor signals into structured, validated contributions while serving the following purposes:
+\begin{itemize}
+    \item \textbf{Data Quality:} Preserves the integrity of route scoring by requiring human verification to filter out noisy or device-dependent false positives.
+    \item \textbf{Scalability:} Enables the system to increase the volume of path information collected without sacrificing accuracy.
+    \item \textbf{Lifecycle Validation:} Confirms the technical feasibility and correctness of the candidate data lifecycle before introducing further automation enhancements.
+\end{itemize}
+
+\subsubsection{Route search and scoring with visualization (F7 to F8, UC6, R19 to R23)}
+Registered and guest users can request routes between designated origins and destinations, which are then evaluated using a weighted model that balances route effectiveness with path quality data, including segment status, obstacles, and information freshness. These candidate routes are sorted by score and presented via map visualizations featuring polyline overlays and markers, achieving the following:
+\begin{itemize}
+    \item \textbf{Decision Support:} Provides the primary utility for the application by assisting users in selecting the highest-quality paths.
+    \item \textbf{Engagement:} Offers high value to the entire user base, including those who do not actively contribute data.
+    \item \textbf{Value Validation:} Demonstrates that community contributions and consolidated statuses have a direct, measurable impact on route ranking and map interpretation.
+\end{itemize}
+
+\subsubsection{Report storage and merging into consolidated status (F9, UC7, R24 to R27)}
+The system stores path segment reports alongside timestamps and user identifiers, utilizing merging logic to produce a consolidated status from multiple reports on the same segment. This algorithm prioritizes data freshness by weighting newer reports more heavily and resolves discrepancies through majority and weighted majority logic, directly informing the route scoring pipeline while fulfilling these roles:
+\begin{itemize}
+    \item \textbf{Conflict Resolution:} Reconciles contradictory user reports into a single, coherent status to ensure consistent system behavior.
+    \item \textbf{Scalability:} Facilitates the growth of community contributions by providing a systematic way to process overlapping data points.
+    \item \textbf{Data Integrity:} Validates that the scoring algorithm operates on a stabilized and reliable representation of current path conditions.
+
+\end{itemize}
+
+\subsubsection{Administration and moderation (F10, R28 to R29)}
+Authorized administrators can manage platform content by blocking accounts and hiding or removing erroneous contributions, with these actions enforced via role-based access checks. These moderation efforts directly influence data visibility and the calculation of consolidated results to ensure the following:
+\begin{itemize}
+    \item \textbf{Data Quality:} Prevents malicious or inaccurate inputs from degrading the integrity of route recommendations.
+    \item \textbf{POperational Safety:} Protects the community by providing the tools necessary to address harmful behavior and maintain platform standards.
+    \item \textbf{System Trust:} Maintains the reliability of the community-sourced data that powers the scoring pipeline, ensuring long-term user confidence.
+\end {itemize}  
+
+\subsection{Requirements and features excluded or partially implemented}
+\begin{enumerate}
+    \item \textbf{R25: Periodic merging scheduled execution partially implemented} \\ The merging logic is currently executed manually or opportunistically upon the creation or update of publishable contributions, rather than through a scheduled backend process. This approach exercises the full algorithmic logic for freshness and majority rules while maintaining a coherent read model for route scoring, addressing the following factors:
+        \begin{itemize}
+            \item \textbf{Operational Efficiency:} Defers the cloud configuration, secure deployment settings, and environment management required for a production-grade scheduler to reduce setup complexity.
+            \item \textbf{Engineering Constraints:} Avoids the immediate need for complex locking strategies, versioning, and concurrency controls required to manage race conditions and idempotency in scheduled recomputations.
+
+            \item \textbf{Functional Equivalence:} Ensures core correctness and functional validation are fully tested within the application without introducing non-essential operational dependencies.
+        \end{itemize}
+        For these reasons the application implements merge computation and uses it in the scoring pipeline and it defers scheduled execution hardening to a future iteration.
+    \item \textbf{ Password recovery not implemented} \\ While the underlying authentication provider supports password reset in the admin end, a dedicated user interface and end-to-end workflow for password recovery are not currently included. This feature was deprioritized to focus resources on stabilizing the high-priority GPS, sensor, and scoring pipelines, based on the following considerations:
+        \begin{itemize}
+            \item \textbf{Core Goal Alignment:} Password recovery is secondary to the primary objectives of trip recording, community contributions, and route scoring.
+            \item \textbf{Implementation Complexity:} A robust implementation necessitates managing additional UI states, email deliverability and reset token lifecycles.
+            \item \textbf{Security Requirements:} Proper execution requires addressing complex edge cases, such as user enumeration resistance, which would require significant development effort.
+        \end{itemize}
+    \item \textbf{Data export GPX and CSV not implemented} \\ The application currently lacks an export function for trips or traces in formats such as GPX or CSV. This feature was excluded to ensure the stability of core functionalities and prioritize the central architecture, taking into account the following factors:
+        \begin{itemize}
+            \item \textbf{Engineering Effort:} A robust export system requires extensive formatting and interoperability testing to ensure data correctness across external platforms.
+            \item \textbf{Platform Complexity:} Implementation necessitates handling platform-dependent file management across both Android and iOS environments.
+            \item \textbf{Privacy Concerns:} Developing secure export mechanisms requires additional safeguards for handling and sharing sensitive location traces.
+        \end{itemize}
+
+\end{enumerate}
+
+\subsection{Requirements implementation summary table (R1 to R29)}
+The table~.\ref{tab:req-impl-summary} reports the implementation status of each functional requirement. Status values are Implemented, Partially implemented or Not implemented.
+
+\begin{longtable}{|p{1.2cm}|p{4.2cm}|p{3.0cm}|p{6.8cm}|}
+\caption{Requirements implementation summary (R1 to R29)}\label{tab:req-impl-summary}\\
+\hline
+\textbf{Req ID} & \textbf{Requirement short name} & \textbf{Status} & \textbf{Notes} \\
+\hline
+\endfirsthead
+
+\hline
+\textbf{Req ID} & \textbf{Requirement short name} & \textbf{Status} & \textbf{Notes} \\
+\hline
+\endhead
+
+\hline
+\multicolumn{4}{r}{\textit{Continued on next page}} \\
+\endfoot
+
+\hline
+\endlastfoot
+
+R1  & User registration & Implemented & Registration flow implemented through the authentication module and UI. \\
+\hline
+R2  & User login & Implemented & Login flow implemented and required for protected features. \\
+\hline
+R3  & Start trip recording & Implemented & Trip start initializes GPS sampling and trip state. \\
+\hline
+R4  & Stop trip recording & Implemented & Trip stop finalizes statistics and persists trip artifacts. \\
+\hline
+R5  & Trip statistics & Implemented & Distance, duration and speed computed and stored with trips. \\
+\hline
+R6  & Trip history & Implemented & Trip history list and trip detail view are available. \\
+\hline
+R7  & Trip weather enrichment & Implemented & Weather snapshot is attached when the external service is reachable. \\
+\hline
+R8  & Manual path creation & Implemented & Manual contribution flow supports creating segment related data. \\
+\hline
+R9  & Segment status assignment & Implemented & Users can assign a condition label for a segment. \\
+\hline
+R10 & Obstacle creation & Implemented & Users can create obstacle reports with basic attributes. \\
+\hline
+R11 & Publishability & Implemented & Contributions can be marked publishable or private. \\
+\hline
+R12 & Edit manual contributions & Implemented & Users can edit and delete their own submitted contributions. \\
+\hline
+R13 & Enable or disable automatic mode & Implemented & Automatic mode toggle is supported and persisted. \\
+\hline
+R14 & Sensor data logging & Implemented & Sensor samples are collected during trips in automatic mode. \\
+\hline
+R15 & Detect candidate obstacles & Implemented & Candidate anomalies are generated from sensor streams. \\
+\hline
+R16 & Candidate list presentation & Implemented & Candidates are displayed for post trip review. \\
+\hline
+R17 & User confirmation and correction & Implemented & Users can confirm, reject and edit candidates. \\
+\hline
+R18 & Conversion into reports & Implemented & Confirmed candidates are stored as reports and obstacles. \\
+\hline
+R19 & Public path search & Implemented & Route search is available to guest users. \\
+\hline
+R20 & Route computation & Implemented & Candidate routes are computed via an external routing service. \\
+\hline
+R21 & Path scoring & Implemented & Scoring combines path quality signals with effectiveness factors. \\
+\hline
+R22 & Ordered path list & Implemented & Routes are sorted by computed score and presented. \\
+\hline
+R23 & Path visualization & Implemented & Map overlays visualize routes and related markers. \\
+\hline
+R24 & Segment report storage & Implemented & Reports stored with timestamps and user identifiers. \\
+\hline
+R25 & Periodic merging & Partially implemented & Merging exists but is triggered on demand rather than by scheduler. \\
+\hline
+R26 & Freshness handling & Implemented & Merging weights newer reports more heavily. \\
+\hline
+R27 & Majority handling & Implemented & Merging resolves conflicts via majority and weighted majority. \\
+\hline
+R28 & User blocking & Implemented & Admins can block abusive users. \\
+\hline
+R29 & Data removal & Implemented & Admins can remove or hide problematic contributions. \\
+\hline
+
+\end{longtable}
+
+\subsection{Included Threads and Scope Boundaries}
+The application scope was constrained to the minimum coherent set of capabilities necessary to validate the main BBP threads end to end.
+\begin{itemize}
+    \item \textbf{Core user value thread:} Account management, trip recording and persistence with history and details.
+    \item \textbf{Community data thread:} Manual and automatic contributions with publishability control and merging.
+    \item \textbf{Decision support thread:} Route computation, scoring and visualization using consolidated data.
+\end{itemize}
+
+Within this scope we prioritized features that are architecturally central, integration heavy and material to the correctness of route ranking. Excluded or partially implemented items were those that primarily improve product completeness rather than core correctness. In particular periodic scheduled merging is operational hardening that requires scheduler configuration and concurrency safe idempotent recomputation. Password recovery and export features require additional security and platform specific handling and they do not increase confidence in the central data pipeline so they were deprioritized in favor of stability and test coverage of the core flows.
