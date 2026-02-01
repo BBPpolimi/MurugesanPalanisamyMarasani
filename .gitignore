@@ -1,3 +1,8 @@
+# Environment variables (API keys - DO NOT COMMIT)
+.env
+android/secrets.properties
+ios/Runner/Secrets.xcconfig
+
 # Miscellaneous
 *.class
 *.log

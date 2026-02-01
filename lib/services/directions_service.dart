@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/route_candidate.dart';
 
 class DirectionsService {
-  static const String _googleApiKey =
-      'AIzaSyB0JGW9K_M69OPlEkUb4bjImj3ogpjJxNM'; // Using the new working API Key
+  static String get _googleApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
   static const String _baseUrl =
       'https://maps.googleapis.com/maps/api/directions/json';
 
