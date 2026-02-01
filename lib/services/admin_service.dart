@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/bike_path.dart';
+import '../models/contribution.dart';
 import '../models/blocked_user.dart';
 import '../models/audit_log.dart';
 
@@ -21,48 +21,65 @@ class AdminService {
   // ============ CONTRIBUTION MANAGEMENT ============
 
   /// Get all contributions (for admin review)
-  Future<List<BikePath>> getAllContributions({String? filterVisibility}) async {
+  Future<List<Contribution>> getAllContributions({String? filterState}) async {
     if (!_isAdmin) throw Exception('Admin access required');
 
-    Query query = _firestore.collection('bike_paths');
+    Query query = _firestore.collection('contributions');
     
-    if (filterVisibility != null) {
-      query = query.where('visibility', isEqualTo: filterVisibility);
+    if (filterState != null) {
+      query = query.where('state', isEqualTo: filterState);
     }
 
     final snapshot = await query.limit(200).get();
     
-    final paths = snapshot.docs
-        .map((doc) => BikePath.fromMap(doc.data() as Map<String, dynamic>))
+    final contributions = snapshot.docs
+        .map((doc) => Contribution.fromMap(doc.data() as Map<String, dynamic>))
         .toList();
 
-    paths.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return paths;
+    contributions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return contributions;
   }
 
-  /// Get flagged contributions for review
-  Future<List<BikePath>> getFlaggedContributions() async {
+  /// Get flagged contributions for review (using 'archived' state or 'flagged' boolean)
+  Future<List<Contribution>> getFlaggedContributions() async {
     if (!_isAdmin) throw Exception('Admin access required');
 
+    // Try to get contributions that have been flagged
+    // First check if there's a 'flagged' field, otherwise use 'archived' state
     final snapshot = await _firestore
-        .collection('bike_paths')
-        .where('visibility', isEqualTo: PathVisibility.flagged.name)
+        .collection('contributions')
+        .where('flagged', isEqualTo: true)
         .get();
 
-    final paths = snapshot.docs
-        .map((doc) => BikePath.fromMap(doc.data()))
+    // If no flagged field exists, try archived state
+    if (snapshot.docs.isEmpty) {
+      final archivedSnapshot = await _firestore
+          .collection('contributions')
+          .where('state', isEqualTo: 'archived')
+          .get();
+      
+      final contributions = archivedSnapshot.docs
+          .map((doc) => Contribution.fromMap(doc.data()))
+          .toList();
+      
+      contributions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return contributions;
+    }
+
+    final contributions = snapshot.docs
+        .map((doc) => Contribution.fromMap(doc.data()))
         .toList();
 
-    paths.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return paths;
+    contributions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return contributions;
   }
 
   /// Flag a contribution for review
-  Future<void> flagContribution(String pathId, String reason) async {
+  Future<void> flagContribution(String contributionId, String reason) async {
     if (!_isAdmin) throw Exception('Admin access required');
 
-    await _firestore.collection('bike_paths').doc(pathId).update({
-      'visibility': PathVisibility.flagged.name,
+    await _firestore.collection('contributions').doc(contributionId).update({
+      'flagged': true,
       'flagReason': reason,
       'flaggedBy': _userId,
       'flaggedAt': FieldValue.serverTimestamp(),
@@ -71,19 +88,19 @@ class AdminService {
 
     await _logAction(
       action: AdminAction.flagContribution,
-      targetId: pathId,
+      targetId: contributionId,
       targetType: AuditTargetType.contribution,
       details: reason,
     );
   }
 
   /// Unflag a contribution (restore to published)
-  Future<void> unflagContribution(String pathId) async {
+  Future<void> unflagContribution(String contributionId) async {
     if (!_isAdmin) throw Exception('Admin access required');
 
-    await _firestore.collection('bike_paths').doc(pathId).update({
-      'visibility': PathVisibility.published.name,
-      'publishable': true,
+    await _firestore.collection('contributions').doc(contributionId).update({
+      'flagged': false,
+      'state': 'published',
       'flagReason': FieldValue.delete(),
       'flaggedBy': FieldValue.delete(),
       'flaggedAt': FieldValue.delete(),
@@ -92,20 +109,20 @@ class AdminService {
 
     await _logAction(
       action: AdminAction.unflagContribution,
-      targetId: pathId,
+      targetId: contributionId,
       targetType: AuditTargetType.contribution,
     );
   }
 
   /// Hard delete a contribution (admin only)
-  Future<void> removeContribution(String pathId) async {
+  Future<void> removeContribution(String contributionId) async {
     if (!_isAdmin) throw Exception('Admin access required');
 
-    await _firestore.collection('bike_paths').doc(pathId).delete();
+    await _firestore.collection('contributions').doc(contributionId).delete();
 
     await _logAction(
       action: AdminAction.removeContribution,
-      targetId: pathId,
+      targetId: contributionId,
       targetType: AuditTargetType.contribution,
     );
   }

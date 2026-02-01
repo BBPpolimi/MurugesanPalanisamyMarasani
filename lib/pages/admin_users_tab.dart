@@ -14,15 +14,10 @@ class AdminUsersTab extends ConsumerStatefulWidget {
 
 class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
   List<BlockedUser> _blockedUsers = [];
-  bool _isLoading = true;
+  bool _isLoadingData = false;
+  bool _hasLoadedData = false;
   final _userIdController = TextEditingController();
   final _reasonController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBlockedUsers();
-  }
 
   @override
   void dispose() {
@@ -32,10 +27,25 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
   }
 
   Future<void> _loadBlockedUsers() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingData) return; // Prevent multiple simultaneous loads
+    
+    setState(() => _isLoadingData = true);
     try {
+      final userAsync = ref.read(userWithRoleProvider);
+      final user = userAsync.asData?.value;
+      if (user == null || !user.isAdmin) {
+        if (mounted) {
+          setState(() => _isLoadingData = false);
+        }
+        return;
+      }
+      
+      // Ensure admin service is initialized
       final adminService = ref.read(adminServiceProvider);
+      adminService.initialize(user.uid, user.isAdmin, email: user.email);
+      
       _blockedUsers = await adminService.getBlockedUsers();
+      _hasLoadedData = true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -44,102 +54,128 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
       }
     }
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() => _isLoadingData = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    // Watch the user provider - this will trigger rebuild when data is available
+    final userAsync = ref.watch(userWithRoleProvider);
+    
+    return userAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Center(child: Text('Error loading user: $e')),
+      data: (user) {
+        // User data is now available
+        if (user == null || !user.isAdmin) {
+          return const Center(child: Text('Admin access required'));
+        }
+        
+        // Initialize admin service with the user
+        final adminService = ref.read(adminServiceProvider);
+        adminService.initialize(user.uid, user.isAdmin, email: user.email);
+        
+        // Load data if not already loaded
+        if (!_hasLoadedData && !_isLoadingData) {
+          // Schedule the load after this build frame
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadBlockedUsers();
+          });
+        }
+        
+        if (_isLoadingData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Block User Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Block a User',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _userIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'User ID',
-                      hintText: 'Enter the user ID to block',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _reasonController,
-                    decoration: const InputDecoration(
-                      labelText: 'Reason',
-                      hintText: 'Why is this user being blocked?',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.warning),
-                    ),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: _blockUser,
-                    icon: const Icon(Icons.block),
-                    label: const Text('Block User'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Blocked Users List
-          Text(
-            'Blocked Users (${_blockedUsers.length})',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          
-          Expanded(
-            child: _blockedUsers.isEmpty
-                ? const Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
-                          SizedBox(height: 16),
-                          Text('No blocked users'),
-                        ],
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Block User Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Block a User',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadBlockedUsers,
-                    child: ListView.builder(
-                      itemCount: _blockedUsers.length,
-                      itemBuilder: (context, index) {
-                        final user = _blockedUsers[index];
-                        return _buildBlockedUserCard(user);
-                      },
-                    ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _userIdController,
+                        decoration: const InputDecoration(
+                          labelText: 'User ID',
+                          hintText: 'Enter the user ID to block',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _reasonController,
+                        decoration: const InputDecoration(
+                          labelText: 'Reason',
+                          hintText: 'Why is this user being blocked?',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.warning),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: _blockUser,
+                        icon: const Icon(Icons.block),
+                        label: const Text('Block User'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Blocked Users List
+              Text(
+                'Blocked Users (${_blockedUsers.length})',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              
+              Expanded(
+                child: _blockedUsers.isEmpty
+                    ? const Center(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+                              SizedBox(height: 16),
+                              Text('No blocked users'),
+                            ],
+                          ),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadBlockedUsers,
+                        child: ListView.builder(
+                          itemCount: _blockedUsers.length,
+                          itemBuilder: (context, index) {
+                            final user = _blockedUsers[index];
+                            return _buildBlockedUserCard(user);
+                          },
+                        ),
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -188,6 +224,7 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
       await ref.read(adminServiceProvider).blockUser(userId, reason);
       _userIdController.clear();
       _reasonController.clear();
+      _hasLoadedData = false; // Force reload
       await _loadBlockedUsers();
       
       if (mounted) {
@@ -227,6 +264,7 @@ class _AdminUsersTabState extends ConsumerState<AdminUsersTab> {
     if (confirm == true) {
       try {
         await ref.read(adminServiceProvider).unblockUser(user.userId);
+        _hasLoadedData = false; // Force reload
         await _loadBlockedUsers();
         
         if (mounted) {

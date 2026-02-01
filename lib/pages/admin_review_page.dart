@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/bike_path.dart';
+import '../models/contribution.dart';
 import '../services/providers.dart';
 import 'admin_users_tab.dart';
 import 'admin_audit_log_tab.dart';
@@ -16,15 +16,15 @@ class AdminReviewPage extends ConsumerStatefulWidget {
 class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<BikePath> _allPaths = [];
-  List<BikePath> _flaggedPaths = [];
-  bool _isLoading = true;
+  List<Contribution> _allContributions = [];
+  List<Contribution> _flaggedContributions = [];
+  bool _isLoadingData = false;
+  bool _hasLoadedData = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadData();
   }
 
   @override
@@ -34,12 +34,26 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    if (_isLoadingData) return;
+    
+    setState(() => _isLoadingData = true);
     
     try {
+      final userAsync = ref.read(userWithRoleProvider);
+      final user = userAsync.asData?.value;
+      if (user == null || !user.isAdmin) {
+        if (mounted) {
+          setState(() => _isLoadingData = false);
+        }
+        return;
+      }
+      
       final adminService = ref.read(adminServiceProvider);
-      _allPaths = await adminService.getAllContributions();
-      _flaggedPaths = await adminService.getFlaggedContributions();
+      adminService.initialize(user.uid, user.isAdmin, email: user.email);
+      
+      _allContributions = await adminService.getAllContributions();
+      _flaggedContributions = await adminService.getFlaggedContributions();
+      _hasLoadedData = true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +63,7 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     }
 
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() => _isLoadingData = false);
     }
   }
 
@@ -79,14 +93,12 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
 
   @override
   Widget build(BuildContext context) {
-    // Security Check: Ensure user is admin
     final userAsync = ref.watch(userWithRoleProvider);
     
     return userAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (user) {
-        // Triple-layer security: must be logged in, not guest, and explicitly admin
         final isAuthorized = user != null && !user.isGuest && user.isAdmin;
         
         if (!isAuthorized) {
@@ -108,6 +120,17 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           );
         }
 
+        // Initialize admin service
+        final adminService = ref.read(adminServiceProvider);
+        adminService.initialize(user.uid, user.isAdmin, email: user.email);
+        
+        // Load data if not loaded
+        if (!_hasLoadedData && !_isLoadingData) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _loadData();
+          });
+        }
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Admin Review'),
@@ -115,8 +138,8 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           controller: _tabController,
           isScrollable: true,
           tabs: [
-            Tab(text: 'All (${_allPaths.length})'),
-            Tab(text: 'Flagged (${_flaggedPaths.length})'),
+            Tab(text: 'All (${_allContributions.length})'),
+            Tab(text: 'Flagged (${_flaggedContributions.length})'),
             const Tab(text: 'Users'),
             const Tab(text: 'Audit Log'),
           ],
@@ -129,7 +152,10 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
+            onPressed: () {
+              _hasLoadedData = false;
+              _loadData();
+            },
             tooltip: 'Refresh',
           ),
         ],
@@ -137,12 +163,12 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _isLoading
+          _isLoadingData
               ? const Center(child: CircularProgressIndicator())
-              : _buildPathList(_allPaths, showFlagOption: true),
-          _isLoading
+              : _buildContributionList(_allContributions, showFlagOption: true),
+          _isLoadingData
               ? const Center(child: CircularProgressIndicator())
-              : _buildPathList(_flaggedPaths, showUnflagOption: true),
+              : _buildContributionList(_flaggedContributions, showUnflagOption: true),
           const AdminUsersTab(),
           const AdminAuditLogTab(),
         ],
@@ -152,12 +178,12 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     );
   }
 
-  Widget _buildPathList(
-    List<BikePath> paths, {
+  Widget _buildContributionList(
+    List<Contribution> contributions, {
     bool showFlagOption = false,
     bool showUnflagOption = false,
   }) {
-    if (paths.isEmpty) {
+    if (contributions.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -174,11 +200,11 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
       onRefresh: _loadData,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: paths.length,
+        itemCount: contributions.length,
         itemBuilder: (context, index) {
-          final path = paths[index];
+          final contribution = contributions[index];
           return _buildAdminCard(
-            path,
+            contribution,
             showFlagOption: showFlagOption,
             showUnflagOption: showUnflagOption,
           );
@@ -188,21 +214,21 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
   }
 
   Widget _buildAdminCard(
-    BikePath path, {
+    Contribution contribution, {
     bool showFlagOption = false,
     bool showUnflagOption = false,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
-        leading: _buildVisibilityIcon(path.visibility),
-        title: Text(path.name ?? 'Untitled Path'),
+        leading: _buildStateIcon(contribution.state),
+        title: Text(contribution.name ?? 'Untitled Contribution'),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('User: ${path.userId.substring(0, 8)}...'),
+            Text('User: ${contribution.userId.length > 8 ? contribution.userId.substring(0, 8) : contribution.userId}...'),
             Text(
-              '${path.segments.length} segments • ${(path.distanceMeters / 1000).toStringAsFixed(2)} km',
+              '${contribution.sourceLabel} • ${(contribution.distanceMeters / 1000).toStringAsFixed(2)} km',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
           ],
@@ -213,31 +239,31 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Path Info
+                // Contribution Info
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Chip(label: Text(path.status.label)),
-                    if (path.city != null) Chip(label: Text(path.city!)),
-                    Chip(label: Text('v${path.version}')),
+                    Chip(label: Text(contribution.statusRating.label)),
+                    Chip(label: Text(contribution.state.name)),
+                    if (contribution.city != null) Chip(label: Text(contribution.city!)),
+                    Chip(label: Text('v${contribution.version}')),
                   ],
                 ),
                 const SizedBox(height: 8),
                 
-                // Streets preview
-                Text(
-                  'Streets: ${path.segments.map((s) => s.streetName).join(' → ')}',
-                  style: const TextStyle(fontSize: 12),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                // Score if available
+                if (contribution.pathScore != null)
+                  Text(
+                    'Path Score: ${contribution.pathScore!.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 
-                if (path.obstacles.isNotEmpty)
+                if (contribution.obstacles.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      '${path.obstacles.length} obstacle(s) reported',
+                      '${contribution.obstacles.length} obstacle(s) reported',
                       style: TextStyle(color: Colors.orange.shade700),
                     ),
                   ),
@@ -250,26 +276,25 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
                   runSpacing: 8,
                   alignment: WrapAlignment.end,
                   children: [
-                    // Block User button
                     TextButton.icon(
-                      onPressed: () => _showBlockUserDialog(path.userId),
+                      onPressed: () => _showBlockUserDialog(contribution.userId),
                       icon: const Icon(Icons.block, color: Colors.purple),
                       label: const Text('Block User', style: TextStyle(color: Colors.purple)),
                     ),
-                    if (showFlagOption && path.visibility != PathVisibility.flagged)
+                    if (showFlagOption)
                       TextButton.icon(
-                        onPressed: () => _showFlagDialog(path),
+                        onPressed: () => _showFlagDialog(contribution),
                         icon: const Icon(Icons.flag, color: Colors.orange),
                         label: const Text('Flag', style: TextStyle(color: Colors.orange)),
                       ),
                     if (showUnflagOption)
                       TextButton.icon(
-                        onPressed: () => _unflagPath(path),
+                        onPressed: () => _unflagContribution(contribution),
                         icon: const Icon(Icons.check, color: Colors.green),
                         label: const Text('Approve', style: TextStyle(color: Colors.green)),
                       ),
                     TextButton.icon(
-                      onPressed: () => _confirmRemove(path),
+                      onPressed: () => _confirmRemove(contribution),
                       icon: const Icon(Icons.delete_forever, color: Colors.red),
                       label: const Text('Remove', style: TextStyle(color: Colors.red)),
                     ),
@@ -283,28 +308,37 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     );
   }
 
-  Widget _buildVisibilityIcon(PathVisibility visibility) {
-    switch (visibility) {
-      case PathVisibility.published:
+  Widget _buildStateIcon(ContributionState state) {
+    switch (state) {
+      case ContributionState.published:
         return const CircleAvatar(
           backgroundColor: Colors.green,
           child: Icon(Icons.public, color: Colors.white, size: 20),
         );
-      case PathVisibility.flagged:
+      case ContributionState.archived:
         return const CircleAvatar(
           backgroundColor: Colors.orange,
           child: Icon(Icons.flag, color: Colors.white, size: 20),
         );
-      case PathVisibility.private:
-      default:
+      case ContributionState.privateSaved:
         return CircleAvatar(
           backgroundColor: Colors.grey.shade300,
           child: const Icon(Icons.lock, color: Colors.grey, size: 20),
         );
+      case ContributionState.draft:
+        return CircleAvatar(
+          backgroundColor: Colors.blue.shade200,
+          child: const Icon(Icons.edit, color: Colors.white, size: 20),
+        );
+      case ContributionState.pendingConfirmation:
+        return const CircleAvatar(
+          backgroundColor: Colors.amber,
+          child: Icon(Icons.pending, color: Colors.white, size: 20),
+        );
     }
   }
 
-  void _showFlagDialog(BikePath path) {
+  void _showFlagDialog(Contribution contribution) {
     final reasonController = TextEditingController();
 
     showDialog(
@@ -335,7 +369,7 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await _flagPath(path, reasonController.text);
+              await _flagContribution(contribution, reasonController.text);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Flag'),
@@ -355,7 +389,7 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Block user: ${userId.substring(0, 12)}...'),
+            Text('Block user: ${userId.length > 12 ? userId.substring(0, 12) : userId}...'),
             const SizedBox(height: 16),
             TextField(
               controller: reasonController,
@@ -411,9 +445,10 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     }
   }
 
-  Future<void> _flagPath(BikePath path, String reason) async {
+  Future<void> _flagContribution(Contribution contribution, String reason) async {
     try {
-      await ref.read(adminServiceProvider).flagContribution(path.id, reason);
+      await ref.read(adminServiceProvider).flagContribution(contribution.id, reason);
+      _hasLoadedData = false;
       await _loadData();
       
       if (mounted) {
@@ -430,9 +465,10 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     }
   }
 
-  Future<void> _unflagPath(BikePath path) async {
+  Future<void> _unflagContribution(Contribution contribution) async {
     try {
-      await ref.read(adminServiceProvider).unflagContribution(path.id);
+      await ref.read(adminServiceProvider).unflagContribution(contribution.id);
+      _hasLoadedData = false;
       await _loadData();
       
       if (mounted) {
@@ -449,7 +485,7 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
     }
   }
 
-  Future<void> _confirmRemove(BikePath path) async {
+  Future<void> _confirmRemove(Contribution contribution) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -473,7 +509,8 @@ class _AdminReviewPageState extends ConsumerState<AdminReviewPage>
 
     if (confirm == true) {
       try {
-        await ref.read(adminServiceProvider).removeContribution(path.id);
+        await ref.read(adminServiceProvider).removeContribution(contribution.id);
+        _hasLoadedData = false;
         await _loadData();
         
         if (mounted) {
