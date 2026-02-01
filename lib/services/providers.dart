@@ -82,18 +82,21 @@ final tripsStreamProvider = StreamProvider<List<dynamic>>((ref) async* {
     // Get all user contributions
     final contributions = await contributionService.getMyContributions();
 
-    // Combine trips and contributions, avoiding duplicates
-    // (contributions with tripId are already linked to trips)
-    final tripIds = trips.map((t) => t.id).toSet();
+    // Build set of trip IDs that have been converted to contributions
     final contributionTripIds = contributions
         .where((c) => c.tripId != null)
         .map((c) => c.tripId!)
         .toSet();
 
+    // Filter out trips that have been converted to contributions
+    // (these will be shown as contributions with user's saved names)
+    final unconvertedTrips = trips
+        .where((t) => !contributionTripIds.contains(t.id))
+        .toList();
+
     final combined = <dynamic>[
-      ...trips, // All trips
-      // Only add contributions that are NOT linked to a trip (manual contributions)
-      ...contributions.where((c) => c.tripId == null),
+      ...unconvertedTrips, // Only trips that haven't been converted
+      ...contributions, // All contributions (both linked and manual)
     ];
 
     // Sort by date descending
@@ -122,6 +125,7 @@ final tripsStreamProvider = StreamProvider<List<dynamic>>((ref) async* {
     yield combined;
   }
 });
+
 
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 

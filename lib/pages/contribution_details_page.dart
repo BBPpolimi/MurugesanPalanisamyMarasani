@@ -182,6 +182,22 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
           ),
         };
       });
+      
+      // Add start and end markers for automatic contributions (from polyline)
+      if (contribution.source == ContributionSource.automatic && contribution.segments.isEmpty) {
+        _markers.add(Marker(
+          markerId: const MarkerId('start_point'),
+          position: polylinePoints.first,
+          infoWindow: const InfoWindow(title: 'Start'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        ));
+        _markers.add(Marker(
+          markerId: const MarkerId('end_point'),
+          position: polylinePoints.last,
+          infoWindow: const InfoWindow(title: 'End'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        ));
+      }
     }
 
     // Add obstacle markers
@@ -207,11 +223,12 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
       }
     }
     
-    // Trigger rebuild to show obstacle markers
-    if (mounted && contribution.obstacles.isNotEmpty) {
+    // Trigger rebuild to show all markers
+    if (mounted) {
       setState(() {});
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -569,6 +586,12 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
         !isPublished,
       );
       
+      // Invalidate providers to refresh lists everywhere
+      ref.invalidate(tripsStreamProvider);
+      ref.invalidate(myContributionsProvider);
+      ref.invalidate(myDraftContributionsProvider);
+      ref.invalidate(myPublishedContributionsProvider);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -587,4 +610,5 @@ class _ContributionDetailsPageState extends ConsumerState<ContributionDetailsPag
       }
     }
   }
+
 }

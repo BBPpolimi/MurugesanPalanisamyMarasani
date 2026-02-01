@@ -118,6 +118,7 @@ class ContributionService {
       gpsPolyline: gpsPolyline,           // NEW: store encoded polyline
       mapPreviewPolyline: gpsPolyline,     // Use GPS as preview too
       capturedAt: now,
+      confirmedAt: now,                    // Set confirmedAt so contribution can be published later
       publishedAt: isPublic ? now : null,  // Set publishedAt if public
       createdAt: now,
       updatedAt: now,
@@ -243,14 +244,26 @@ class ContributionService {
 
   /// Publish a contribution (PRIVATE_SAVED → PUBLISHED)
   Future<void> publishContribution(String id) async {
-    final contribution = await getContribution(id);
+    var contribution = await getContribution(id);
     if (contribution == null) throw Exception('Contribution not found');
 
+    // Auto-confirm legacy automatic contributions that don't have confirmedAt
+    if (contribution.source == ContributionSource.automatic &&
+        contribution.confirmedAt == null) {
+      final now = DateTime.now();
+      contribution = contribution.copyWith(
+        confirmedAt: now,
+        updatedAt: now,
+      );
+      // Update the confirmedAt in database first
+      await _firestore
+          .collection('contributions')
+          .doc(id)
+          .update({'confirmedAt': now, 'updatedAt': now});
+    }
+
+    // Re-check canPublish with updated contribution
     if (!contribution.canPublish) {
-      if (contribution.source == ContributionSource.automatic &&
-          contribution.confirmedAt == null) {
-        throw Exception('Automatic contributions must be confirmed first');
-      }
       throw Exception('Contribution cannot be published in current state');
     }
 

@@ -797,6 +797,9 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
       return _editedObstacles[original.id] ?? original;
     }).toList();
 
+    // Save the isPublic state before resetting
+    final wasPublic = _isPublic;
+
     await tripService.saveReviewedTrip(
       name: name,
       isPublic: _isPublic,
@@ -809,7 +812,7 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isPublic 
+          content: Text(wasPublic 
               ? 'Trip saved and published!' 
               : 'Trip saved as draft!'),
           backgroundColor: Colors.green,
@@ -817,6 +820,7 @@ class _RecordTripPageState extends ConsumerState<RecordTripPage> {
       );
     }
   }
+
 
   void _resetReviewState() {
     _nameController.clear();

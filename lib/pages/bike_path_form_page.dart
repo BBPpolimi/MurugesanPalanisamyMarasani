@@ -57,6 +57,10 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
   String? _existingGpsPolyline; // Preserve GPS polyline for automatic trips
   String? _existingTripId; // Preserve trip ID for automatic contributions
   ContributionSource _existingSource = ContributionSource.manual; // Track source
+  
+  // Check if this is an automatic contribution (has GPS polyline, no street segments needed)
+  bool get _isAutomaticWithGps => _existingSource == ContributionSource.automatic && 
+      (_existingGpsPolyline != null || _mapPreviewPolyline != null);
 
   @override
   void initState() {
@@ -108,14 +112,14 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
     switch (step) {
       case 0: // Basic info - always valid (optional fields)
         return true;
-      case 1: // Streets - need at least 2
-        return _segments.length >= 2;
+      case 1: // Streets - need at least 2 (skip for automatic contributions with GPS)
+        return _isAutomaticWithGps || _segments.length >= 2;
       case 2: // Status & tags - status is required (always has default)
         return true;
       case 3: // Obstacles - optional
         return true;
       case 4: // Preview - ready to submit
-        return _segments.length >= 2;
+        return _isAutomaticWithGps || _segments.length >= 2;
       default:
         return false;
     }
@@ -124,13 +128,15 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
   String? _getStepError(int step) {
     switch (step) {
       case 1:
-        if (_segments.length < 2) {
+        // Skip error for automatic contributions with GPS polyline
+        if (!_isAutomaticWithGps && _segments.length < 2) {
           return 'Add at least 2 street segments to define your path';
         }
         break;
     }
     return null;
   }
+
 
   void _onStepContinue() {
     if (!_canContinue(_currentStep)) {
@@ -143,15 +149,21 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
       return;
     }
 
-    if (_currentStep < 4) {
+    // For automatic contributions, we have 4 steps (Streets is skipped)
+    // For manual contributions, we have 5 steps
+    final lastStep = _isAutomaticWithGps ? 3 : 4;
+    final previewStep = _isAutomaticWithGps ? 3 : 4;
+
+    if (_currentStep < lastStep) {
       setState(() => _currentStep++);
-      if (_currentStep == 4) {
+      if (_currentStep == previewStep) {
         _recalculateFullRoute();
       }
     } else {
       _submit();
     }
   }
+
 
   void _onStepCancel() {
     if (_currentStep > 0) {
@@ -413,12 +425,14 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
 
   // --- Submit ---
   void _submit() async {
-    if (_segments.length < 2) {
+    // Skip segments check for automatic contributions with GPS polyline
+    if (!_isAutomaticWithGps && _segments.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Add at least 2 street segments.')),
       );
       return;
     }
+
 
     final user = ref.read(authStateProvider).value;
     if (user == null) {
@@ -475,6 +489,12 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
         await service.addContribution(contribution);
       }
       
+      // Invalidate providers to refresh lists everywhere
+      ref.invalidate(tripsStreamProvider);
+      ref.invalidate(myContributionsProvider);
+      ref.invalidate(myDraftContributionsProvider);
+      ref.invalidate(myPublishedContributionsProvider);
+      
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -492,6 +512,7 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
         );
       }
     }
+
   }
 
 
@@ -510,7 +531,9 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
           onStepCancel: _onStepCancel,
           onStepTapped: _onStepTapped,
           controlsBuilder: (context, details) {
-            final isLastStep = _currentStep == 4;
+            final lastStepIndex = _isAutomaticWithGps ? 3 : 4;
+            final isLastStep = _currentStep == lastStepIndex;
+
             return Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Row(
@@ -545,7 +568,8 @@ class _BikePathFormPageState extends ConsumerState<BikePathFormPage> {
               state: _currentStep > 0 ? StepState.complete : StepState.indexed,
               content: _buildBasicInfoStep(),
             ),
-            // Step 2: Streets
+            // Step 2: Streets (only for manual contributions)
+            if (!_isAutomaticWithGps)
             Step(
               title: const Text('Streets'),
               subtitle: Text('${_segments.length} segments'),

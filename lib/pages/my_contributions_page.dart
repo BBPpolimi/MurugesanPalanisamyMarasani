@@ -154,6 +154,7 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage>
           ).then((_) {
             ref.refresh(myDraftContributionsProvider);
             ref.refresh(myPublishedContributionsProvider);
+            ref.invalidate(tripsStreamProvider);
           });
         },
         borderRadius: BorderRadius.circular(12),
@@ -375,6 +376,7 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage>
     ).then((_) {
       ref.refresh(myDraftContributionsProvider);
       ref.refresh(myPublishedContributionsProvider);
+      ref.invalidate(tripsStreamProvider);
     });
   }
 
@@ -385,6 +387,7 @@ class _MyContributionsPageState extends ConsumerState<MyContributionsPage>
       await ref.read(contributionServiceProvider).togglePublish(contribution.id, !isPublished);
       ref.refresh(myDraftContributionsProvider);
       ref.refresh(myPublishedContributionsProvider);
+      ref.invalidate(tripsStreamProvider);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
