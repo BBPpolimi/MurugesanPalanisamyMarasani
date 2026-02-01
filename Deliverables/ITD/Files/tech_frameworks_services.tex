@@ -12,7 +12,7 @@ Flutter was selected to implement a single mobile client for Android and iOS whi
         \item \textbf{Good support for reactive UI patterns} which helps keep the UI synchronized with live trip recording state and asynchronous backend updates.
         \item \textbf{Type safety and null safety} which reduce runtime errors and improve maintainability in the application integrate multiple services.
     \end{enumerate}
-    \item \textbf{Disadvantages: }
+    \item \textbf{Challenges: }
         \begin{enumerate}
             \item \textbf{Learning curve:} The stack requires mastery of specific state and lifecycle patterns.
             \item \textbf{Performance pitfalls: } presents potential performance risks if state management is undisciplined on map-heavy screens.
@@ -31,11 +31,11 @@ Firebase services were selected to implement the backend with minimal operationa
             \item \textbf{Security and key protection} by enabling API calls and business rules to run server side rather than on the client.
             \item \textbf{Scalability} that fits an application that may face variable load patterns.
         \end{enumerate}
-    \item \textbf{Drawbacks}
+    \item \textbf{Challenges}
         \begin{enumerate}
             \item \textbf{Local debugging complexity} compared to a traditional monolithic backend.
             \item \textbf{Cold start latency} that can affect the first invocation of infrequently used functions.
-            \item \textbf{Vendor lock} in because the backend uses Firebase and Google Cloud primitives.
+            \item \textbf{Vendor lock in} because the backend uses Firebase and Google Cloud primitives.
         \end{enumerate}
 \end{itemize}
 
@@ -57,7 +57,7 @@ BBP adopts a serverless backend built on the Firebase ecosystem:
             \item \textbf{Security separation} between client code and protected backend logic.
             \item \textbf{Pay per use cost model} that is appropriate for an application.
         \end{enumerate}
-    \item \textbf{Drawbacks:}
+    \item \textbf{Challenges:}
         \begin{enumerate}
             \item \textbf{Tighter coupling} to Firebase services and data model conventions.
             \item \textbf{Need for careful security rules} and strict function authorization to avoid privilege escalation and data leakage.
@@ -85,7 +85,7 @@ External services are used to support routing, map visualization, place search a
                     \item Mature SDKs with strong documentation and stable behavior.
                     \item Consistent geospatial primitives that simplify route visualization and interaction. 
                 \end{enumerate}
-            \item \textbf{Drawbacks of Google Maps APIs}
+            \item \textbf{Challenges of Google Maps APIs}
                 \begin{enumerate}
                     \item Quotas and billing constraints which require careful request management.
                     \item Network dependency which affects routing and place lookup when connectivity is limited.
@@ -103,7 +103,7 @@ External services are used to support routing, map visualization, place search a
                     \item Failures degrade gracefully by storing the trip without weather data.
                     \item Weather enrichment is performed on a best-effort basis and does not impact trip persistence.
                 \end{enumerate}
-            \item \textbf{Disadvantages}
+            \item \textbf{Challenges}
                 \begin{enumerate}
                     \item External dependency and rate limits.
                     \item Potential mismatches between weather timestamp granularity and trip timestamps.

@@ -191,4 +191,12 @@ The application scope was constrained to the minimum coherent set of capabilitie
     \item \textbf{Decision support thread:} Route computation, scoring and visualization using consolidated data.
 \end{itemize}
 
-Within this scope we prioritized features that are architecturally central, integration heavy and material to the correctness of route ranking. Excluded or partially implemented items were those that primarily improve product completeness rather than core correctness. In particular periodic scheduled merging is operational hardening that requires scheduler configuration and concurrency safe idempotent recomputation. Password recovery and export features require additional security and platform specific handling and they do not increase confidence in the central data pipeline so they were deprioritized in favor of stability and test coverage of the core flows.
+Within the defined scope, priority was given to features that are architecturally central, require deep system integration and are critical to the correctness of route ranking. These capabilities directly impact the integrity and reliability of the core computation pipeline and therefore warranted primary focus. Conversely, items that were excluded or only partially implemented are those that primarily enhance overall product completeness rather than core correctness. While valuable, these features do not materially increase confidence in the accuracy or stability of the ranking logic.
+
+Specifically:
+\begin{itemize}
+    \item \textbf{Periodic scheduled merging} was identified as an operational hardening activity. Its implementation depends on scheduler configuration and concurrency-safe, idempotent recomputation, which introduces additional operational complexity beyond the current scope.
+    \item \textbf{Password recovery and data export functionality} require further security considerations and platform-specific handling. As these features do not strengthen the central data pipeline or ranking correctness, they were deprioritized.
+\end{itemize}
+
+Overall, the prioritization strategy favored improving system stability, architectural soundness, and test coverage of core flows over expanding auxiliary product features. This approach ensures a robust and reliable foundation before addressing broader completeness and operational enhancements.
