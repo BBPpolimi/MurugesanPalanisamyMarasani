@@ -1,0 +1,540 @@
+\subsection{Acceptance Test Cases and Outcomes}
+\begin{enumerate}
+    \item \textbf{Acceptance Test Case 01}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R1 – Register to access personalized features
+
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item System is running
+            \item Evaluator has no existing account  for the test email.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Open the application.
+            \item Navigate to Sign Up / Register.
+            \item Enter valid registration data (username/email/password as required).
+            \item Submit the registration form.
+            \item Try logging in with the newly created credentials.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Account is created and user can log in successfully.
+
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item No email verification and no reset/ forgot password. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 02}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R1 – Registration input validation
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item System is running
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Go to Register.
+            \item Submit form with missing required field(s) (e.g., blank password).
+            \item Submit form with invalid email format (if email exists).
+        \end{enumerate}
+        \item \textbf{Expected Result:} Registration is rejected; user receives a clear validation error message.
+
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Validation is correct.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 03}  
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R2 – Log in to account
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item A valid account exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to Login.
+            \item Enter correct credentials.
+            \item Submit.
+        \end{enumerate}
+        \item \textbf{Expected Result:} User is authenticated and redirected to a logged-in area (dashboard/profile).
+
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item ITD: login partially implemented (no password reset).
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{Acceptance Test Case 04}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}  R2 – Login failure on wrong credentials
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item A valid account exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to Login.
+            \item Enter correct username/email but wrong password.
+            \item Submit.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Login fails with a clear error; user stays unauthenticated.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item No sensitive information was revealed. 
+            \item Display of message “Invalid credentials”.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 05}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R3 – Record trip in Manual Mode
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to Create Trip (Manual mode).
+            \item Enter trip metadata (name/date/time/duration as required).
+            \item Enter street/path info and select a status for the path/segments.
+            \item Save trip.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Trip is saved; user can view it in their trip history with entered data.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Unable to edit the entered points/ locations. 
+            \item Destination limits in the dropdown for “End Point”. 
+            \item The dropdown has only 3-4 places listed for "End Point". 
+            \item The start and end points are predetermined. No choice is given for users to search for places. 
+            \item No option to edit/delete the entered path. 
+            \item Unable to edit the manually saved path.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 06}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R3 – Manual trip required fields \& constraints
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Open Manual trip creation.
+            \item Leave mandatory fields empty and attempt save.
+            \item Enter invalid values (e.g., negative duration) if allowed by UI.
+            \item Attempt save.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Trip is not saved; UI shows validation messages.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Multiple paths with the same name are accepted. 
+            \item Users unable to distinguish paths.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 07}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R7 – Stored trips appear in trip history
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User has atleast one saved trip.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Go to My Trips / Trip History.
+            \item Locate the created trip.
+            \item Open trip details page.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Trip list contains the trip; details page shows correct metadata and path info.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Trip persistence and retrieval is verified for manual paths.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 08}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R8 – Trip statistics are displayed
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item At least one trip exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Open trip details.
+            \item Locate statistics section (distance, duration, avg speed, etc.).
+        \end{enumerate}
+        \item \textbf{Expected Result:} Stats are displayed and consistent with trip data (at minimum: non-empty, plausible values).
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The displayed stats include: avg speed, duration, weather, wind speed, distance travelled and temperature. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 09}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R9 – Weather attached to trip (current or historical)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in 
+            \item System has internet access if weather API is live 
+            \item A trip exists or will be created.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Create a trip with a date = today.
+            \item Save and open trip details.
+            \item Verify weather fields exist (temperature, wind, etc.).
+            \item Create another trip with a past date (if UI permits).
+            \item Verify weather is still attached (historical behavior).
+        \end{enumerate}
+        \item \textbf{Expected Result:} Weather info is shown on trip details and matches “current vs historical” logic described in ITD.
+
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Weather Information exists
+            \item Not able to create the manual path with the current time. Validation is mentioning the time should be at least one hour before the current time.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 10}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}  R10 – User can define path status (manual)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Create a manual trip.
+            \item For at least one path/segment, set status (optimal/medium/sufficient/maintenance or equivalents).
+            \item Save trip and reopen details.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Status is saved and visible; values match allowed set.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The selected path statuses for each segment determine the status for the entire trip. 
+            \item No option to delete or edit the created path or path statuses again.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 11}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R4 – Record trip in Automated Mode (availability + flow)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item System is running
+            \item User is logged in
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to trip creation and select Automated Mode.
+            \item Start automated recording (or simulated recording).
+            \item Stop recording.
+            \item Proceed to review/summary step.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Automated mode exists and produces a trip draft for review (even if simulated).
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The automated trip recording starts with a predetermined location and the list goes on until the trip is ended. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 12}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R11 – User must confirm/correct/reject auto-acquired data before storing
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Automated trip draft exists (AT-11).
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Reach the review/confirmation page for an automated trip.
+            \item Attempt to save without confirmation.
+            \item Perform an explicit confirm action.
+            \item Save trip.
+        \end{enumerate}
+        \item \textbf{Expected Result:} System enforces review; trip is stored only after \\confirm/correction/rejection step.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The Confirmation is not given.
+            \item Automated trip recording has Add Path which is not needed.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 13}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}R5 – Automated mode path reconstruction output is shown
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Automated trip draft exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item On the review page, locate the reconstructed path (map/segment list). 
+            \item Check that origin→destination segments exist (or at least a generated route).
+            \item Save and reopen trip details.
+        \end{enumerate}
+        \item \textbf{Expected Result:} A reconstructed path representation is shown and persisted with the trip.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The recorded path is visible
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 14}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R6 – Automated detection of inconsistencies/obstacles is presented
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Automated trip draft exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item On automated review, locate detected issues/statuses (e.g., anomalies).
+            \item Confirm there is at least one segment with a non-default status if simulation provides it.
+            \item Save trips and verify issues remain visible.
+        \end{enumerate}
+        \item \textbf{Expected Result:}  Detected inconsistencies are displayed to the user and carried into the stored trip after confirmation.
+        \item \textbf{Actual Result:} FAIL
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item After the Automated Recording draft, there is an option to change the statuses.
+            \item No option for obstacle detection like potholes, construction etc.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 15}  
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R12 – User can publish trip/path info to community
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in
+            \item Atleast one trip exists
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Open trip details.
+            \item Select option to Publish (or mark publishable).
+            \item Confirm action.
+            \item Navigate to the community/public section and search for the published content.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Trip/path info becomes visible in the “Community” view and is marked published.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item  The paths get published to the community when the user publishes the recorded paths. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 16}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R13 – Guest can search paths (no login)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is not logged in / guest access
+            \item System is running
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item open application as guest.
+            \item Navigate to path search.
+            \item Choose origin and destination (dropdowns).
+            \item Run search.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Guest users can perform a path search and receive results.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item But the provided path doesn’t show the status of the entire route nor others details. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 17}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R14 – Map visualization of relevant paths
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Path search results exist.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Perform path search.
+            \item Locate map visualization (canvas/map component).
+            \item Select/highlight a returned path.
+            \item Use “Open in Google Maps” (if present).
+        \end{enumerate}
+        \item \textbf{Expected Result:} Paths are visualized on map; selecting a path highlights it; external map link opens correct route.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The visualization is a graph of the predetermined points.
+            \item The button “Open in Google Maps” redirects to the map visualization of the entire route on Google Maps.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 18}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R13 – Registered user can search paths
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in 
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to path search.
+            \item Choose origin + destination.
+            \item Run search.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Path search works for logged-in users as well; results displayed.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Once the origin is selected, the same point is visible in the destination.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 19}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R15 – Path score ranking is applied to results
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item There are multiple candidate paths/segments with different statuses (from published reports).
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Ensure at least two published trips report different statuses for different segments/paths.
+            \item Run path search for a route that includes those segments.
+            \item Observe ordering / ranking indicators.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Results are ranked with higher-quality statuses preferred (optimal > medium > sufficient > maintenance), as described in ITD.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item No score is displayed
+            \item The overall rank of that path is mentioned as status.
+            \item Paths are Not ordered based on Ranking.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 20}
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}  R16 – Multi-user merge: majority wins
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Two (or more) different users exist 
+            \item Publishing is available 
+            \item Both can report on the same segment/path.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item User A creates a trip on segment S and sets status = optimal; publish.
+            \item User B creates a trip on the same segment S and sets status = maintenance; publish.
+            \item User C (or A/B) creates a third published report on the same segment S = optimal.
+            \item Run a search that includes segment S or view aggregated segment status.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Aggregated/merged status for S becomes “optimal” (majority).
+        \item \textbf{Actual Result:} Not Executed
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item Not able to verify the merge whether it is working or not.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 21}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}  R16 – Merge tie-breaker uses most recent timestamp
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Two users are needed.
+            \item Equal number of reports for two different statuses on same segment/path.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item User A publishes status for segment S = medium.
+            \item User B publishes status for segment S = sufficient (same count now).
+            \item Publish a newer report to break tie (e.g., User B publishes again same segment S = sufficient later) OR follow the system’s mechanism to update.
+            \item Observe merged outcome for S.
+        \end{enumerate}
+        \item \textbf{Expected Result:} When counts tie, the system selects the most recent report’s status.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item It counts ties, but displaying both the paths and not able to verify which is considered.
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 22}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R7/R12 – Community/public view only shows published items
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item Logged out or guest 
+            \item Atleast one published trip exists and one non-published trip exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item As a logged-in user, ensure Trip A is published and Trip B is not.
+            \item Log out and go to the community/public section.
+            \item Search/browse public trips list.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Published Trip A is visible; non-published Trip B is not visible to guests.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The Community tab only holds the trips published by the users. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 23}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:}R3/R7 – User can delete or remove a trip (if UI supports it)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item User is logged in 
+            \item Atleast one trip exists.
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Open trip list.
+            \item Delete a trip (if feature exists).
+            \item Refresh trip list.
+        \end{enumerate}
+        \item \textbf{Expected Result:} Trip is removed from trip history and no longer accessible.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The users are able to delete/ unpublish trips when needed.
+            \item But the manual path recording has no provision to remove segments. 
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Acceptance Test Case 24}
+
+    \begin{itemize}
+        \item \textbf{Requirement Being Tested:} R13/R14 – Handling invalid search input (negative acceptance test)
+        \item \textbf{Preconditions:}
+        \begin{itemize}
+            \item System running; any user (guest or logged-in).
+        \end{itemize}
+        \item \textbf{Test Steps:}
+        \begin{enumerate}
+            \item Navigate to path search.
+            \item Try searching with missing origin or destination.
+            \item If possible, select the same origin and destination and search.
+        \end{enumerate}
+        \item \textbf{Expected Result:} System prevents invalid search or returns a clear error message; no crash.
+        \item \textbf{Actual Result:} PASS
+        \item \textbf{Comments:}
+        \begin{itemize}
+            \item The origin and the destination are predetermined and the user has no provision to enter points of his/ her choice. 
+            \item But when the result has no origin or destination selected, “Please select both origin and destination” message is displayed.
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}

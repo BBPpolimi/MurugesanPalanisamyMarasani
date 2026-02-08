@@ -1,0 +1,28 @@
+\begin{thebibliography}{1}
+
+\bibitem{alloy}
+{Alloy Analyzer}.
+\newblock Alloy analyzer documentation (analyzer tooling).
+\newblock \url{https://alloy.readthedocs.io/en/latest/tooling/analyzer.html}.
+
+\bibitem{figma}
+{Figma, Inc.}
+\newblock Figma: Collaborative interface design tool.
+\newblock \url{https://www.figma.com}.
+
+\bibitem{chatgpt}
+{OpenAI}.
+\newblock Chatgpt (used for paraphrasing).
+\newblock \url{https://chatgpt.com}.
+
+\bibitem{overleaf}
+{Overleaf}.
+\newblock Overleaf: Online \latex\ editor.
+\newblock \url{https://www.overleaf.com/}.
+
+\bibitem{planttext}
+{PlantText}.
+\newblock Planttext: Online text editor for writing and notes.
+\newblock \url{https://www.planttext.com}.
+
+\end{thebibliography}

@@ -1,0 +1,55 @@
+\subsection{Code Readability}
+\begin{itemize}
+    \item Clear package separation: \texttt{handlers/}, \texttt{models/}, \texttt{database/}, \texttt{weather/}, \texttt{static/}
+    \item Descriptive naming for functions and variables with self explanatory intent
+    \item Consistent use of Go idioms such as explicit \texttt{err} handling concise handlers JSON tags and DTO usage
+    \item Authentication utilities are clean and readable including \texttt{generateToken}, \texttt{hashPassword} and \texttt{checkPassword}
+    \item Useful inline comments for key business logic and requirement traceability for example \texttt{// (R16)}
+    \item SQL schema is well commented and easy to understand
+    \item Inconsistent error handling as some errors are logged with fallback behavior while others are silently ignored
+    \item Long and complex functions in \texttt{handlers/trips.go} reduce clarity due to mixed responsibilities
+    \item Repeated SQL NULL parsing patterns introduce duplication and reduce maintainability
+    \item Magic numbers and hardcoded constants such as session duration and bcrypt cost are present without centralized configuration
+    \item Minor robustness and security related readability issues such as raw SQL \texttt{LIMIT} concatenation
+\end{itemize}
+
+\subsection{Project Structure}
+\begin{itemize}
+    \item Clean repository level organization with separate documentation directories such as \texttt{RASD/}, \texttt{DD/} and \texttt{Implementation/}
+    \item Implementation structure is conventional and easy to navigate
+    \item Entry point is simple and contained in \texttt{main.go}
+    \item Docker and Docker Compose configuration is provided and the use of a multi stage Docker build is a strong design choice
+    \item Database schema is embedded and managed cleanly with volume persistence properly configured
+    \item External dependencies are minimal and appropriate
+    \item No explicit service layer is present as business logic is embedded directly in HTTP handlers
+    \item No repository or data access abstraction layer is implemented and SQL queries are mixed into handlers
+    \item Middleware pipeline is limited with no centralized logging metrics or recovery mechanism
+    \item No automated tests are provided as \texttt{*\_test.go} files are missing across packages
+    \item Potential evaluator setup friction exists as the PostgreSQL port mapping may conflict with local usage on port 5432
+\end{itemize}
+
+\subsection{Documentation Clarity}
+\begin{itemize}
+    \item The root README provides clear setup commands and a usage entry point including the application URL
+    \item The implementation README includes a useful endpoint list which supports black box evaluation
+    \item Repository structure overview is clear and evaluator friendly
+    \item A public deployment URL is documented and useful for verification
+    \item SQL schema documentation is detailed with tables constraints and seeded locations clearly explained
+    \item No troubleshooting section is provided for common issues such as port conflicts Docker reset or service startup timing
+    \item Environment variable and configuration documentation is minimal for example database URL and port configuration
+    \item No formal API documentation is provided such as OpenAPI Swagger or request and response examples
+    \item Package level GoDoc comments are missing which reduces long term maintainability
+\end{itemize}
+
+\subsection{Coherence with RASD and DD}
+\begin{itemize}
+    \item Strong coverage of core RASD requirements including R1, R2, R3, R7, R8, R9, R13, R14, R15 and R16
+    \item Weather enrichment functionality aligns with RASD goal G6 and the designed external service integration
+    \item Publishing and community related behavior aligns with aggregation and shared knowledge goals defined in G5
+    \item Search and route visualization features align with browsing and recommendation goals defined in G4
+    \item Database schema is coherent with the DD graph model concept including nodes edges user reports and aggregation
+    \item Implementation maps well to the component responsibilities described in the DD including authentication trips paths routing search database and weather
+    \item Sensor based automatic detection goals related to G3 and requirements R4 to R6 are simulated or limited compared to real device sensing
+    \item The DD layering is conceptually present using a client server model but implemented as a monolithic backend which is acceptable for a prototype
+    \item A minor documented deviation is present where nginx is used instead of ngrok which represents an implementation choice and does not violate requirements
+\end{itemize}

@@ -1,0 +1,175 @@
+\documentclass[11pt, twoside]{article}
+\input{commandsFile}
+\raggedbottom 
+\begin{document}
+
+%====================================================
+% TITLE PAGE
+%====================================================
+\begin{titlepage}
+\begin{center}
+
+% Logo
+\vspace*{1cm}
+\includegraphics[scale=0.5]{Images/PolimiLogo}
+
+\vspace{1cm}
+
+% University name
+{\Large \textbf{POLITECNICO DI MILANO}}\\
+\vspace{0.2cm}
+{\large 1863}
+
+\vspace{1.2cm}
+
+% Degree and course
+{\Large \textbf{Computer Science and Engineering}}\\
+\vspace{0.3cm}
+{\Large \textbf{Software Engineering II}}\\
+\vspace{0.3cm}
+{\large 2025 -- 2026}
+
+\vspace{1.5cm}
+
+% Document type
+{\Huge \textbf{ATD}}\\
+\vspace{0.4cm}
+{\Large \textbf{Acceptance Testing Document}}\\
+\vspace{0.3cm}
+{\large \textbf{\textit{Best Bike Paths(BBP)}}}
+\vspace{2cm}
+
+% Project and authors
+{\large
+\textbf{By}\\
+\vspace{0.2cm}
+Jayasurya Marasani (11023924)\\
+Arunkumar Murugesan (11051547)\\
+Sneharajalakshmi Palanisamy (11132155)
+}
+
+
+\end{center}
+\end{titlepage}
+
+
+%Define deliverable specific info
+%Replace cell contents where needed
+\begin{table}[h!]
+\begin{tabu} to \textwidth { X[0.3,r,p] X[0.7,l,p] }
+\hline
+
+\textbf{Deliverable:} & ITD\\
+\textbf{Title:} & Acceptance Testing Document for Best Bike Paths (BBP)\\
+\textbf{Authors:} & Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy \\
+\textbf{Version:} & 1.0 \\ 
+\textbf{Date:} & 07 February 2026 \\
+\textbf{Download page:} & https://github.com/BBPpolimi/MurugesanPalanisamyMarasani \\
+\textbf{Copyright:} & Copyright © 2026, Jayasurya Marasani, Arunkumar Murugesan and Sneharajalakshmi Palanisamy – All rights reserved \\
+\hline
+\end{tabu}
+\end{table}
+
+
+
+
+\setcounter{page}{2}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\newpage
+\addcontentsline{toc}{section}{Table of Contents}
+\tableofcontents
+\newpage
+% \addcontentsline{toc}{section}{List of Figures}
+% \listoffigures
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Product Identifitication}}}
+\label{sect:product_identification}
+\input{Files/product_identification.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Installation Setup and Issues}}}
+\label{sect:installation_setup_issues}
+\input{Files/installation_setup_issues.tex}  
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Acceptance Testing}}}
+\label{sect:acceptance_testing}
+\input{Files/acceptance_testing.tex}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Quality Observations}}}
+\label{sect:quality_observations}
+\input{Files/quality_observations.tex}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+{\color{Blue}{\section{Effort Spent}}}
+\label{sect:effort}
+\input{Files/effort}
+
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+\clearpage
+\addcontentsline{toc}{section}{References}
+% \bibliographystyle{plain}
+
+% \bibliography{main}
+\begin{thebibliography}{9}
+
+\bibitem{RASD}
+Y. Jiang, L. Pinto, and S. Puthli.
+\newblock \textit{Requirement Analysis and Specification Document (RASD)}.
+\newblock Version 1.00, December 23, 2025.
+
+\bibitem{DD}
+Y. Jiang, L. Pinto, and S. Puthli.
+\newblock \textit{Design Document (DD)}.
+\newblock Version 1.0, January 6, 2026.
+
+\bibitem{ITD}
+Y. Jiang, L. Pinto, and S. Puthli.
+\newblock \textit{Implementation and Test Deliverable (ITD)}.
+\newblock Version 1, 2026.
+
+\bibitem{README}
+Y. Jiang, L. Pinto, and S. Puthli.
+\newblock \textit{README.md}.
+\newblock BestBikePaths project repository, GitHub.
+
+\bibitem{SE2Rules}
+Politecnico di Milano.
+\newblock \textit{Software Engineering 2 -- Implementation \& Testing Assignment Rules}.
+\newblock Academic Year 2025--2026.
+
+\bibitem{Repo}
+BestBikePaths Project Repository.
+\newblock \url{https://github.com/imsanjayrao/JiangPintoPuthli}.
+
+\bibitem{chatgpt}
+OpenAI.
+\newblock \textit{ChatGPT (used for paraphrasing)}.
+\newblock \url{https://chatgpt.com}.
+
+\bibitem{overleaf}
+Overleaf.
+\newblock \textit{Overleaf: Online \LaTeX\ Editor}.
+\newblock \url{https://www.overleaf.com/}.
+
+\end{thebibliography}
+
+%------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+\end{document}
